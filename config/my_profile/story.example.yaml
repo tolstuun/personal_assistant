@@ -1,0 +1,50 @@
+# Your Professional Story
+# Job Hunter agent uses this to craft personalized CVs and cover letters
+
+elevator_pitch: |
+  [Replace with your pitch]
+  Example: "20+ years in cybersecurity. Grew from pentester to 
+  security director. Built security practices from scratch 
+  at three companies."
+
+key_themes:
+  - "Can translate technical risk to business language"
+  - "Built teams from scratch"
+  - "Experience with regulators (PCI DSS, GDPR, SOX)"
+
+unique_value: |
+  [What's your superpower?]
+
+career_narrative: |
+  [Your career story — what connects the dots?]
+
+target_roles:
+  primary:
+    - "CISO"
+    - "Head of Security"
+    - "VP of Security"
+  secondary:
+    - "Security Director"
+    - "Principal Security Engineer"
+  avoid:
+    - "Junior anything"
+
+stories:
+  - title: "Built SOC from scratch"
+    situation: "Company realized risks after competitor breach"
+    task: "Build SOC in 6 months from scratch"
+    action: |
+      - Conducted assessment of current state
+      - Selected and implemented SIEM
+      - Hired and trained team of 5 people
+    result: "Reduced MTTD from infinity to 4 hours"
+    tags: [soc, leadership, incident-response]
+
+writing_style:
+  tone: "professional but not formal"
+  avoid:
+    - "buzzwords without substance"
+    - "humble bragging"
+  include:
+    - "specific metrics and numbers"
+    - "concrete examples"

@@ -1,0 +1,70 @@
+# Your Professional Facts
+# Concrete, verifiable achievements and experience
+
+experience:
+  - company: "Example Corp"
+    period: "2019-2023"
+    title: "Head of Information Security"
+    location: "Remote / New York"
+    
+    responsibilities:
+      - "Security strategy and roadmap"
+      - "Team management (direct reports: 12)"
+      - "Budget ownership ($2M annually)"
+      - "Board-level reporting"
+    
+    achievements:
+      - metric: "Team growth"
+        value: "0 → 12 people in 2 years"
+        context: "Built security function from scratch"
+        
+      - metric: "MTTD"
+        value: "∞ → 4 hours"
+        context: "After SOC implementation"
+    
+    technologies:
+      - "SIEM (Splunk, ELK)"
+      - "EDR (CrowdStrike)"
+      - "Cloud Security (AWS, GCP)"
+    
+    left_because: "Company acquired"
+
+skills:
+  technical:
+    - name: "Penetration Testing"
+      level: expert
+      years: 15
+      proof: "OSCP, HackerOne Top 100"
+      
+    - name: "Cloud Security (AWS)"
+      level: advanced
+      years: 5
+      proof: "AWS Security Specialty"
+      
+  leadership:
+    - name: "Team Building"
+      level: advanced
+      years: 6
+      proof: "Built 3 teams from 0"
+
+certifications:
+  - name: "OSCP"
+    issuer: "Offensive Security"
+    year: 2015
+    status: active
+    
+  - name: "CISSP"
+    issuer: "ISC2"
+    year: 2018
+    status: active
+
+education:
+  - degree: "M.S. Computer Science"
+    institution: "Some University"
+    year: 2008
+
+languages:
+  - language: "English"
+    level: "Native"
+  - language: "Spanish"
+    level: "Fluent (C1)"

@@ -1,0 +1,66 @@
+# Security News Sources
+# Used by Security Digest agent
+
+rss_feeds:
+  - name: "Krebs on Security"
+    url: "https://krebsonsecurity.com/feed/"
+    language: en
+    priority: high
+    tags: [general, breaches, analysis]
+    
+  - name: "The Hacker News"
+    url: "https://feeds.feedburner.com/TheHackersNews"
+    language: en
+    priority: high
+    tags: [general, news]
+    
+  - name: "BleepingComputer"
+    url: "https://www.bleepingcomputer.com/feed/"
+    language: en
+    priority: high
+    tags: [malware, vulnerabilities]
+    
+  - name: "Schneier on Security"
+    url: "https://www.schneier.com/feed/"
+    language: en
+    priority: medium
+    tags: [analysis, crypto, policy]
+    
+  - name: "SANS ISC"
+    url: "https://isc.sans.edu/rssfeed.xml"
+    language: en
+    priority: high
+    tags: [threats, analysis]
+
+web_sources:
+  - name: "Anquanke (Chinese)"
+    url: "https://www.anquanke.com"
+    language: zh
+    priority: medium
+    tags: [chinese, vulnerabilities, news]
+    selectors:
+      article_list: ".article-list .article-item"
+      title: "h4 a"
+      link: "h4 a"
+      date: ".article-date"
+
+vendor_blogs:
+  - name: "Google Project Zero"
+    url: "https://googleprojectzero.blogspot.com/feeds/posts/default"
+    type: rss
+    language: en
+    priority: high
+    tags: [research, 0day, vulnerabilities]
+    
+  - name: "Microsoft Security Blog"
+    url: "https://www.microsoft.com/en-us/security/blog/feed/"
+    type: rss
+    language: en
+    priority: high
+    tags: [microsoft, threats, analysis]
+
+settings:
+  check_interval: 60
+  max_articles_per_source: 20
+  relevance_threshold: 6
+  output_language: en
