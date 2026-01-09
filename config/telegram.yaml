@@ -1,0 +1,11 @@
+# Telegram Bot Configuration
+
+# Bot token from @BotFather
+token: "8480546737:AAFcZFfsRRG3U29t9KmVOF2FVFF_V"
+
+# Webhook URL (your domain with HTTPS)
+webhook_url: "https://aioid.vip"
+
+# Telegram user IDs allowed to use the bot
+allowed_users:
+  - 100601343

@@ -44,6 +44,9 @@ dependencies = [
     
     # Async utilities
     "aiofiles>=23.2.0",
+    
+    # Telegram
+    "python-telegram-bot>=21.0",
 ]
 
 [project.optional-dependencies]

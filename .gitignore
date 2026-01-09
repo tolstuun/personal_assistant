@@ -45,6 +45,7 @@ htmlcov/
 config/llm.yaml
 config/storage.yaml
 !config/*.example.yaml
+!config/telegram.yaml
 
 # Environment variables
 .env
@@ -63,3 +64,4 @@ Thumbs.db
 data/
 *.pdf
 *.docx
+venv/

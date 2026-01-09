@@ -82,7 +82,7 @@ def get_config(config_dir: str | None = None) -> dict[str, Any]:
     
     config: dict[str, Any] = {}
     
-    for filename in ["llm.example.yaml", "llm.yaml", "storage.yaml"]:
+    for filename in ["llm.example.yaml", "llm.yaml", "storage.yaml", "telegram.example.yaml", "telegram.yaml"]:
         file_path = base_dir / filename
         if file_path.exists():
             file_config = load_yaml(file_path)
