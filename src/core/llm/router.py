@@ -65,7 +65,8 @@ def get_llm(
         timeout=kwargs.get("timeout", provider_config.get("timeout", 60.0)),
         extra={
             **provider_config.get("extra", {}),
-            **{k: v for k, v in kwargs.items() if k not in ("temperature", "max_tokens", "timeout")},
+            **{k: v for k, v in kwargs.items()
+               if k not in ("temperature", "max_tokens", "timeout")},
         },
     )
 
