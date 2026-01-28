@@ -57,6 +57,12 @@ Before writing any code:
 - Push to remote
 
 ## Commands
+
+**Note:** Additional tools are installed in `~/.local/bin` (including `gh` CLI). Add to PATH if needed:
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+```
+
 - Run app: python run.py
 - Run tests: pytest
 - Run single test file: pytest tests/path/to/test.py -v
@@ -65,6 +71,7 @@ Before writing any code:
 - Type check: mypy src/
 - Start infrastructure: docker-compose up -d
 - Stop infrastructure: docker-compose down
+- GitHub CLI: ~/.local/bin/gh (or just `gh` if PATH is set)
 
 ## Project Structure
 - src/core/ - foundational components (llm, config, primitives, storage)

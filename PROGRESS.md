@@ -4,9 +4,28 @@ Tracking Personal Assistant development progress.
 
 ## Current Status
 
-**Phase 1: Foundation** — 🚧 In progress
+**Phase 4: Storage Layer** — ✅ Complete
 
 ## Changelog
+
+### 2026-01-28: Storage Layer Implementation
+
+**Done:**
+- [x] Created decision doc: docs/decisions/001-storage-layer-design.md
+- [x] config/storage.example.yaml — storage configuration
+- [x] src/core/storage/base.py — abstract base classes
+- [x] src/core/storage/exceptions.py — storage exceptions
+- [x] src/core/storage/postgres.py — PostgreSQL with SQLAlchemy async
+- [x] src/core/storage/redis_cache.py — Redis caching with JSON support
+- [x] src/core/storage/vector_store.py — Qdrant vector search
+- [x] src/core/storage/file_storage.py — MinIO/S3 file storage
+- [x] tests/core/storage/ — tests for all components
+
+**Decisions made:**
+- All storage components follow the same pattern: abstract base class + concrete implementation + factory function
+- Singleton pattern for global instances (get_db, get_cache, etc.)
+- Async-first design throughout
+- Qdrant for vector search (self-hosted, S3-compatible)
 
 ### 2025-01-09: Project Initialization
 
@@ -49,10 +68,11 @@ Tracking Personal Assistant development progress.
 - [ ] Scheduler (cron)
 - [ ] Basic authentication
 
-### Phase 4: Storage Layer
-- [ ] PostgreSQL models
-- [ ] Vector DB (Qdrant) for RAG
-- [ ] File storage (MinIO)
+### Phase 4: Storage Layer ✅
+- [x] PostgreSQL abstractions (SQLAlchemy async)
+- [x] Redis cache layer
+- [x] Vector DB (Qdrant) for RAG
+- [x] File storage (MinIO/S3)
 
 ### Phase 5+: Remaining Agents
 - [ ] Job Hunter
