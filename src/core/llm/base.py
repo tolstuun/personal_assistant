@@ -47,36 +47,36 @@ class LLMConfig:
 class BaseLLM(ABC):
     """
     Abstract base class for LLM providers.
-    
+
     Usage:
         llm = SomeLLMProvider(config)
         response = await llm.complete("Your prompt")
-        
+
         # Or with messages
         response = await llm.chat([
             Message(Role.SYSTEM, "You are helpful assistant"),
             Message(Role.USER, "Hello!"),
         ])
     """
-    
+
     def __init__(self, config: LLMConfig):
         self.config = config
-    
+
     @abstractmethod
     async def complete(self, prompt: str) -> LLMResponse:
         """Simple completion with a single prompt."""
         pass
-    
+
     @abstractmethod
     async def chat(self, messages: list[Message]) -> LLMResponse:
         """Chat completion with message history."""
         pass
-    
+
     @abstractmethod
     async def complete_json(self, prompt: str, schema: dict[str, Any] | None = None) -> dict:
         """Completion that returns structured JSON."""
         pass
-    
+
     def get_model_name(self) -> str:
         """Return the model name."""
         return self.config.model

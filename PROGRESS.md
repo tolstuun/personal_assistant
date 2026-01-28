@@ -8,6 +8,14 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-01-28: CI/CD Workflow
+
+**Done:**
+- [x] Created decision doc: docs/decisions/002-ci-cd-workflow.md
+- [x] .github/workflows/ci-cd.yml — GitHub Actions workflow
+- [x] Automated linting and testing on PRs
+- [x] Automated deployment to Hetzner on master merge
+
 ### 2026-01-28: Storage Layer Implementation
 
 **Done:**

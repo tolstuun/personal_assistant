@@ -7,7 +7,6 @@ Uses webhook mode for production deployment.
 
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 from telegram import Update
 from telegram.ext import (
@@ -36,19 +35,19 @@ class BotConfig:
 class TelegramBot:
     """
     Telegram bot that interfaces with the orchestrator.
-    
+
     Usage:
         bot = TelegramBot(config, orchestrator)
         application = bot.create_application()
-        
+
         # For webhook mode, integrate with FastAPI
     """
-    
+
     def __init__(self, config: BotConfig, orchestrator: Orchestrator):
         self.config = config
         self.orchestrator = orchestrator
         self.application: Application | None = None
-    
+
     def create_application(self) -> Application:
         """Create and configure the Telegram application."""
         self.application = (
@@ -56,29 +55,29 @@ class TelegramBot:
             .token(self.config.token)
             .build()
         )
-        
+
         # Add handlers
         self.application.add_handler(CommandHandler("start", self._cmd_start))
         self.application.add_handler(CommandHandler("help", self._cmd_help))
         self.application.add_handler(CommandHandler("fetch", self._cmd_fetch))
         self.application.add_handler(CommandHandler("status", self._cmd_status))
-        
+
         # Handle unknown commands
         self.application.add_handler(
             MessageHandler(filters.COMMAND, self._unknown_command)
         )
-        
+
         # Handle regular messages
         self.application.add_handler(
             MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message)
         )
-        
+
         return self.application
-    
+
     def _is_authorized(self, user_id: int) -> bool:
         """Check if user is allowed to use the bot."""
         return user_id in self.config.allowed_users
-    
+
     async def _check_auth(self, update: Update) -> bool:
         """Check authorization and send error if not authorized."""
         user_id = update.effective_user.id
@@ -89,12 +88,12 @@ class TelegramBot:
             )
             return False
         return True
-    
+
     async def _cmd_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command."""
         if not await self._check_auth(update):
             return
-        
+
         await update.message.reply_text(
             "👋 Welcome to Personal Assistant!\n\n"
             "Available commands:\n"
@@ -102,12 +101,12 @@ class TelegramBot:
             "/status — Check system status\n"
             "/help — Show this help"
         )
-    
+
     async def _cmd_help(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command."""
         if not await self._check_auth(update):
             return
-        
+
         await update.message.reply_text(
             "📖 *Personal Assistant Help*\n\n"
             "*Commands:*\n"
@@ -120,26 +119,26 @@ class TelegramBot:
             "• Code assistant",
             parse_mode="Markdown"
         )
-    
+
     async def _cmd_fetch(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /fetch command."""
         if not await self._check_auth(update):
             return
-        
+
         if not context.args:
             await update.message.reply_text(
                 "❌ Usage: /fetch <url>\n"
                 "Example: /fetch https://example.com"
             )
             return
-        
+
         url = context.args[0]
-        
+
         # Send "processing" message
         processing_msg = await update.message.reply_text(
             f"🔄 Fetching {url}..."
         )
-        
+
         try:
             # Route to orchestrator
             result = await self.orchestrator.execute_task(
@@ -147,7 +146,7 @@ class TelegramBot:
                 params={"url": url},
                 user_id=update.effective_user.id
             )
-            
+
             if result["success"]:
                 data = result["data"]
                 response = (
@@ -160,20 +159,20 @@ class TelegramBot:
                 )
             else:
                 response = f"❌ *Fetch failed*\n\n{result['error']}"
-            
+
             await processing_msg.edit_text(response, parse_mode="Markdown")
-            
+
         except Exception as e:
             logger.error(f"Fetch command failed: {e}")
             await processing_msg.edit_text(f"❌ Error: {str(e)}")
-    
+
     async def _cmd_status(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /status command."""
         if not await self._check_auth(update):
             return
-        
+
         status = await self.orchestrator.get_status()
-        
+
         await update.message.reply_text(
             f"📊 *System Status*\n\n"
             f"*Orchestrator:* {status['orchestrator']}\n"
@@ -181,21 +180,21 @@ class TelegramBot:
             f"*Tasks processed:* {status['tasks_processed']}",
             parse_mode="Markdown"
         )
-    
+
     async def _unknown_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle unknown commands."""
         if not await self._check_auth(update):
             return
-        
+
         await update.message.reply_text(
             "❓ Unknown command. Use /help to see available commands."
         )
-    
+
     async def _handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle regular text messages."""
         if not await self._check_auth(update):
             return
-        
+
         # For now, just acknowledge
         await update.message.reply_text(
             "💬 I received your message. "
@@ -208,7 +207,7 @@ def create_bot_from_config(orchestrator: Orchestrator) -> TelegramBot:
     """Create bot instance from config file."""
     config = get_config()
     bot_config = config.get("telegram", {})
-    
+
     return TelegramBot(
         config=BotConfig(
             token=bot_config["token"],

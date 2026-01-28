@@ -19,7 +19,7 @@ from src.core.storage.base import (
     VectorSearchResult,
     VectorStoreConfig,
 )
-from src.core.storage.exceptions import ConfigurationError, ConnectionError, NotFoundError
+from src.core.storage.exceptions import ConfigurationError, ConnectionError
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,14 @@ DISTANCE_MAP = {
     "euclidean": Distance.EUCLID,
     "dot": Distance.DOT,
 }
+
+# Namespace UUID for generating deterministic UUIDs from string IDs
+QDRANT_NAMESPACE = uuid.UUID("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+
+
+def _string_to_uuid(string_id: str) -> str:
+    """Convert a string ID to a deterministic UUID string."""
+    return str(uuid.uuid5(QDRANT_NAMESPACE, string_id))
 
 
 class VectorStore(BaseVectorStore):
@@ -157,10 +165,11 @@ class VectorStore(BaseVectorStore):
 
         points = [
             PointStruct(
-                id=doc.id,
+                id=_string_to_uuid(doc.id),
                 vector=doc.embedding,
                 payload={
                     "text": doc.text,
+                    "_original_id": doc.id,  # Store original ID for retrieval
                     **doc.metadata,
                 },
             )
@@ -193,13 +202,14 @@ class VectorStore(BaseVectorStore):
 
         return [
             VectorSearchResult(
-                id=str(result.id),
+                id=result.payload.get("_original_id", str(result.id))
+                if result.payload else str(result.id),
                 score=result.score,
                 text=result.payload.get("text", "") if result.payload else "",
                 metadata={
                     k: v
                     for k, v in (result.payload or {}).items()
-                    if k != "text"
+                    if k not in ("text", "_original_id")
                 },
             )
             for result in results
@@ -210,9 +220,12 @@ class VectorStore(BaseVectorStore):
         client = self._get_client()
         collection_name = self._get_collection_name(collection)
 
+        # Convert string IDs to UUIDs
+        uuid_ids = [_string_to_uuid(id_) for id_ in ids]
+
         await client.delete(
             collection_name=collection_name,
-            points_selector=ids,
+            points_selector=uuid_ids,
         )
         logger.debug(f"Deleted {len(ids)} documents from {collection_name}")
 

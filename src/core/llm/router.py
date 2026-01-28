@@ -27,16 +27,16 @@ def get_llm(
 ) -> BaseLLM:
     """
     Get an LLM instance.
-    
+
     Args:
         model: Model name (e.g., "claude-sonnet-4-20250514", "gpt-4").
                If None, uses default from config.
         provider: Provider name ("litellm"). If None, uses default.
         **kwargs: Additional config options (temperature, max_tokens, etc.)
-    
+
     Returns:
         BaseLLM instance ready to use
-        
+
     Example:
         llm = get_llm()
         llm = get_llm(model="claude-sonnet-4-20250514")
@@ -44,20 +44,20 @@ def get_llm(
     """
     config = get_config()
     llm_config = config.get("llm", {})
-    
+
     if provider is None:
         provider = llm_config.get("default_provider", "litellm")
-    
+
     if provider not in PROVIDERS:
         raise ValueError(f"Unknown provider: {provider}. Available: {list(PROVIDERS.keys())}")
-    
+
     if model is None:
         model = llm_config.get("default_model")
         if model is None:
             raise ValueError("No model specified and no default_model in config")
-    
+
     provider_config = llm_config.get("providers", {}).get(provider, {})
-    
+
     llm_instance_config = LLMConfig(
         model=model,
         temperature=kwargs.get("temperature", provider_config.get("temperature", 0.7)),
@@ -65,12 +65,13 @@ def get_llm(
         timeout=kwargs.get("timeout", provider_config.get("timeout", 60.0)),
         extra={
             **provider_config.get("extra", {}),
-            **{k: v for k, v in kwargs.items() if k not in ("temperature", "max_tokens", "timeout")},
+            **{k: v for k, v in kwargs.items()
+               if k not in ("temperature", "max_tokens", "timeout")},
         },
     )
-    
+
     logger.debug(f"Creating LLM: provider={provider}, model={model}")
-    
+
     provider_class = PROVIDERS[provider]
     return provider_class(llm_instance_config)
 

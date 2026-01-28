@@ -6,7 +6,7 @@ Compatible with any S3-compatible storage service.
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime  # noqa: F401 - may be used later
 from io import BytesIO
 from typing import Any
 

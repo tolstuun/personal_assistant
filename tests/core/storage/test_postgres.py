@@ -46,7 +46,10 @@ async def test_database_create_tables(database: Database) -> None:
     # Verify table exists by querying it
     async with database.session() as session:
         result = await session.execute(
-            text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'test_users')")
+            text(
+                "SELECT EXISTS (SELECT FROM information_schema.tables "
+                "WHERE table_name = 'test_users')"
+            )
         )
         exists = result.scalar()
         assert exists is True

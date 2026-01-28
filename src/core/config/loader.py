@@ -26,27 +26,27 @@ def _substitute_env_vars(obj: Any) -> Any:
     if isinstance(obj, str):
         if obj.startswith("${") and "}" in obj:
             var_part = obj[2:obj.index("}")]
-            
+
             if ":-" in var_part:
                 var_name, default = var_part.split(":-", 1)
             else:
                 var_name, default = var_part, ""
-            
+
             value = os.environ.get(var_name, default)
-            
+
             if obj == f"${{{var_part}}}":
                 return value
-            
+
             return obj.replace(f"${{{var_part}}}", value)
-        
+
         return obj
-    
+
     elif isinstance(obj, dict):
         return {k: _substitute_env_vars(v) for k, v in obj.items()}
-    
+
     elif isinstance(obj, list):
         return [_substitute_env_vars(item) for item in obj]
-    
+
     return obj
 
 
@@ -55,23 +55,23 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not path.exists():
         logger.warning(f"Config file not found: {path}")
         return {}
-    
+
     with open(path) as f:
         data = yaml.safe_load(f) or {}
-    
+
     return _substitute_env_vars(data)
 
 
 def deep_merge(base: dict, override: dict) -> dict:
     """Deep merge two dictionaries. Override takes precedence."""
     result = base.copy()
-    
+
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):
             result[key] = deep_merge(result[key], value)
         else:
             result[key] = value
-    
+
     return result
 
 
@@ -79,16 +79,21 @@ def deep_merge(base: dict, override: dict) -> dict:
 def get_config(config_dir: str | None = None) -> dict[str, Any]:
     """Load and merge all config files."""
     base_dir = Path(config_dir) if config_dir else CONFIG_DIR
-    
+
     config: dict[str, Any] = {}
-    
-    for filename in ["llm.example.yaml", "llm.yaml", "storage.example.yaml", "storage.yaml", "telegram.example.yaml", "telegram.yaml"]:
+
+    config_files = [
+        "llm.example.yaml", "llm.yaml",
+        "storage.example.yaml", "storage.yaml",
+        "telegram.example.yaml", "telegram.yaml",
+    ]
+    for filename in config_files:
         file_path = base_dir / filename
         if file_path.exists():
             file_config = load_yaml(file_path)
             config = deep_merge(config, file_config)
             logger.debug(f"Loaded config: {filename}")
-    
+
     agents_dir = base_dir / "agents"
     if agents_dir.exists():
         config["agents"] = {}
@@ -96,7 +101,7 @@ def get_config(config_dir: str | None = None) -> dict[str, Any]:
             agent_name = agent_file.stem
             config["agents"][agent_name] = load_yaml(agent_file)
             logger.debug(f"Loaded agent config: {agent_name}")
-    
+
     sources_dir = base_dir / "sources"
     if sources_dir.exists():
         config["sources"] = {}
@@ -104,7 +109,7 @@ def get_config(config_dir: str | None = None) -> dict[str, Any]:
             source_name = source_file.stem
             config["sources"][source_name] = load_yaml(source_file)
             logger.debug(f"Loaded sources config: {source_name}")
-    
+
     return config
 
 

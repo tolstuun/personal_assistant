@@ -3,7 +3,7 @@ LLM module — unified interface to language models.
 
 Usage:
     from src.core.llm import get_llm
-    
+
     llm = get_llm()
     response = await llm.complete("Hello!")
 """
@@ -13,7 +13,7 @@ from src.core.llm.router import get_llm, get_llm_cached
 
 __all__ = [
     "BaseLLM",
-    "LLMConfig", 
+    "LLMConfig",
     "LLMResponse",
     "Message",
     "Role",
