@@ -242,11 +242,10 @@ async def update_source(
         source.enabled = enabled
         await session.commit()
 
-        await session.refresh(source)
-
-    return templates.TemplateResponse(
-        "sources/_row.html",
-        {"request": request, "source": source}
+    # Redirect to list after update
+    return Response(
+        status_code=200,
+        headers={"HX-Redirect": "/admin/sources"}
     )
 
 

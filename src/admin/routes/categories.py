@@ -197,12 +197,10 @@ async def update_category(
         category.keywords = keyword_list
         await session.commit()
 
-        # Refresh to get updated data
-        await session.refresh(category)
-
-    return templates.TemplateResponse(
-        "categories/_row.html",
-        {"request": request, "category": category}
+    # Redirect to list after update
+    return Response(
+        status_code=200,
+        headers={"HX-Redirect": "/admin/categories"}
     )
 
 

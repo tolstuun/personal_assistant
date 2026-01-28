@@ -1,6 +1,8 @@
 <tr id="source-{{ source.id }}">
     <td class="px-6 py-4">
-        <div class="text-sm font-medium text-gray-900">{{ source.name }}</div>
+        <a href="/admin/sources/{{ source.id }}/edit" class="text-sm font-medium text-gray-900 hover:text-indigo-600">
+            {{ source.name }}
+        </a>
         <div class="text-sm text-gray-500 truncate max-w-xs">
             <a href="{{ source.url }}" target="_blank" class="hover:underline">{{ source.url }}</a>
         </div>
