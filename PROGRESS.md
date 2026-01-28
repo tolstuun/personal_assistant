@@ -8,6 +8,21 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-01-28: LLM Config Redesign
+
+**Done:**
+- [x] Created decision doc: docs/decisions/003-llm-config-redesign.md
+- [x] config/llm.example.yaml — new provider-based config structure
+- [x] src/core/llm/router.py — rewritten with tier/task/provider support
+- [x] src/core/llm/__init__.py — updated exports
+- [x] tests/core/llm/test_router.py — comprehensive tests
+
+**Features:**
+- Switch providers with a single config change (`current_provider`)
+- Model tiers: fast/smart/smartest abstract away model names
+- Task overrides: optional mapping of tasks to tiers
+- Backwards compatible with old config format
+
 ### 2026-01-28: CI/CD Workflow
 
 **Done:**
