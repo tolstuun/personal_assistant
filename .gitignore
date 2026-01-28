@@ -45,6 +45,7 @@ htmlcov/
 config/llm.yaml
 config/storage.yaml
 config/telegram.yaml
+config/admin.yaml
 !config/*.example.yaml
 
 # Environment variables

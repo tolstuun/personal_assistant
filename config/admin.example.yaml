@@ -1,0 +1,12 @@
+# Admin UI Configuration
+# Copy to config/admin.yaml and set real values
+
+admin:
+  # Password for admin login (use environment variable in production)
+  password: ${ADMIN_PASSWORD:-changeme}
+
+  # Secret key for session signing (CHANGE THIS in production)
+  session_secret: ${ADMIN_SESSION_SECRET:-change-this-secret-key-in-production}
+
+  # Session expiry in hours
+  session_expiry_hours: 24
