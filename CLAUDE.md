@@ -85,6 +85,45 @@ export PATH="$HOME/.local/bin:$PATH"
 - docs/guides/ - how-to guides for the owner
 - docs/changelog.md - plain English change history
 
+## Secrets Management
+
+**IMPORTANT:** Never commit secrets (API keys, tokens, passwords) to git.
+
+### How It Works
+1. **Config files with secrets live ONLY on the Hetzner server**, never in git:
+   - `config/telegram.yaml` - Telegram bot token
+   - `config/llm.yaml` - LLM API keys (OpenAI, Anthropic, etc.)
+   - `config/storage.yaml` - Database passwords, Redis passwords, etc.
+
+2. **Git contains only `*.example.yaml` templates** that show the structure without real values
+
+3. **These files are in `.gitignore`** so they can't be accidentally committed
+
+### Adding New Config That Needs Secrets
+1. Create `config/new-feature.example.yaml` with placeholder values or `${ENV_VAR}` syntax
+2. Add `config/new-feature.yaml` to `.gitignore`
+3. On the server, copy the example and fill in real values
+
+### How Deployment Works
+- Deploy script (`~/personal_assistant/deploy.sh`) pulls code from git
+- Config files on the server stay untouched (they're not in git)
+- This means secrets persist across deployments
+
+### Setting Up a New Server
+1. Clone the repository
+2. Copy each example config to its real name:
+   ```bash
+   cp config/telegram.example.yaml config/telegram.yaml
+   cp config/llm.example.yaml config/llm.yaml
+   cp config/storage.example.yaml config/storage.yaml
+   ```
+3. Edit each file and fill in real values
+4. Set environment variables for sensitive values:
+   ```bash
+   export TELEGRAM_BOT_TOKEN="your-token-here"
+   export ANTHROPIC_API_KEY="sk-ant-..."
+   ```
+
 ## For the Non-Technical Owner
 After any work session, you can:
 1. Run `pytest` to verify everything works
