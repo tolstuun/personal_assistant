@@ -164,7 +164,6 @@ def get_llm(
 
     # Get settings
     settings = llm_config.get("settings", {})
-    provider_config = llm_config.get("providers", {}).get(provider, {})
 
     # Build LLM config
     llm_instance_config = LLMConfig(

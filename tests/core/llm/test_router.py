@@ -6,7 +6,7 @@ without making actual API calls.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from src.core.llm.router import (
     _resolve_model,
