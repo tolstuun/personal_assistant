@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}{% if category %}Edit{% else %}New{% endif %} Category{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-800">{% if category %}Edit{% else %}New{% endif %} Category</h1>
+    <p class="text-gray-600 mt-2">
+        {% if category %}Update category details{% else %}Create a new content category{% endif %}
+    </p>
+</div>
+
+<div class="bg-white rounded-lg shadow max-w-2xl">
+    <form
+        {% if category %}
+        hx-put="/admin/categories/{{ category.id }}"
+        {% else %}
+        hx-post="/admin/categories"
+        {% endif %}
+        hx-target="body"
+        class="p-6 space-y-6"
+    >
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                Name
+            </label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value="{{ category.name if category else '' }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g., CVE Alerts"
+            >
+        </div>
+
+        <div>
+            <label for="digest_section" class="block text-sm font-medium text-gray-700 mb-1">
+                Digest Section
+            </label>
+            <select
+                id="digest_section"
+                name="digest_section"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+                {% for section in digest_sections %}
+                <option value="{{ section }}" {% if category and category.digest_section == section %}selected{% endif %}>
+                    {{ section|replace('_', ' ')|title }}
+                </option>
+                {% endfor %}
+            </select>
+            <p class="mt-1 text-sm text-gray-500">Which section of the digest this category appears in</p>
+        </div>
+
+        <div>
+            <label for="keywords" class="block text-sm font-medium text-gray-700 mb-1">
+                Keywords
+            </label>
+            <input
+                type="text"
+                id="keywords"
+                name="keywords"
+                value="{{ category.keywords|join(', ') if category and category.keywords else '' }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g., CVE, vulnerability, exploit"
+            >
+            <p class="mt-1 text-sm text-gray-500">Comma-separated keywords for filtering content</p>
+        </div>
+
+        <div class="flex justify-end space-x-4 pt-4 border-t">
+            <a href="/admin/categories" class="px-4 py-2 text-gray-700 hover:text-gray-900">
+                Cancel
+            </a>
+            <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+                {% if category %}Update{% else %}Create{% endif %} Category
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

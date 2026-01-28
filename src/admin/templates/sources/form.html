@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}{% if source %}Edit{% else %}New{% endif %} Source{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-800">{% if source %}Edit{% else %}New{% endif %} Source</h1>
+    <p class="text-gray-600 mt-2">
+        {% if source %}Update source details{% else %}Add a new content source{% endif %}
+    </p>
+</div>
+
+<div class="bg-white rounded-lg shadow max-w-2xl">
+    <form
+        {% if source %}
+        hx-put="/admin/sources/{{ source.id }}"
+        {% else %}
+        hx-post="/admin/sources"
+        {% endif %}
+        hx-target="body"
+        class="p-6 space-y-6"
+    >
+        <div>
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+                Name
+            </label>
+            <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value="{{ source.name if source else '' }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g., Krebs on Security"
+            >
+        </div>
+
+        <div>
+            <label for="url" class="block text-sm font-medium text-gray-700 mb-1">
+                URL
+            </label>
+            <input
+                type="url"
+                id="url"
+                name="url"
+                required
+                value="{{ source.url if source else '' }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://example.com/feed"
+            >
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="source_type" class="block text-sm font-medium text-gray-700 mb-1">
+                    Type
+                </label>
+                <select
+                    id="source_type"
+                    name="source_type"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    {% for type in source_types %}
+                    <option value="{{ type }}" {% if source and source.source_type.value == type %}selected{% endif %}>
+                        {{ type|title }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="category_id" class="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                </label>
+                <select
+                    id="category_id"
+                    name="category_id"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                    <option value="">Select a category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if source and source.category_id == category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label for="keywords" class="block text-sm font-medium text-gray-700 mb-1">
+                Keywords
+            </label>
+            <input
+                type="text"
+                id="keywords"
+                name="keywords"
+                value="{{ source.keywords|join(', ') if source and source.keywords else '' }}"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="e.g., malware, ransomware, breach"
+            >
+            <p class="mt-1 text-sm text-gray-500">Comma-separated keywords for filtering (source-specific)</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label for="fetch_interval_minutes" class="block text-sm font-medium text-gray-700 mb-1">
+                    Fetch Interval (minutes)
+                </label>
+                <input
+                    type="number"
+                    id="fetch_interval_minutes"
+                    name="fetch_interval_minutes"
+                    min="5"
+                    max="1440"
+                    value="{{ source.fetch_interval_minutes if source else 60 }}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                <p class="mt-1 text-sm text-gray-500">How often to check for new content</p>
+            </div>
+
+            <div class="flex items-center pt-6">
+                <input
+                    type="checkbox"
+                    id="enabled"
+                    name="enabled"
+                    value="true"
+                    {% if source and source.enabled %}checked{% elif not source %}checked{% endif %}
+                    class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                >
+                <label for="enabled" class="ml-2 text-sm font-medium text-gray-700">
+                    Enabled
+                </label>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-4 pt-4 border-t">
+            <a href="/admin/sources" class="px-4 py-2 text-gray-700 hover:text-gray-900">
+                Cancel
+            </a>
+            <button
+                type="submit"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+                {% if source %}Update{% else %}Create{% endif %} Source
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

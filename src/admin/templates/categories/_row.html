@@ -1,0 +1,37 @@
+<tr id="category-{{ category.id }}">
+    <td class="px-6 py-4 whitespace-nowrap">
+        <div class="text-sm font-medium text-gray-900">{{ category.name }}</div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap">
+        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+            {% if category.digest_section == 'security_news' %}bg-red-100 text-red-800
+            {% elif category.digest_section == 'product_news' %}bg-blue-100 text-blue-800
+            {% else %}bg-green-100 text-green-800{% endif %}">
+            {{ category.digest_section }}
+        </span>
+    </td>
+    <td class="px-6 py-4">
+        <div class="flex flex-wrap gap-1">
+            {% for keyword in category.keywords[:3] %}
+            <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded">{{ keyword }}</span>
+            {% endfor %}
+            {% if category.keywords|length > 3 %}
+            <span class="text-gray-400 text-xs">+{{ category.keywords|length - 3 }}</span>
+            {% endif %}
+        </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {{ category.sources|length }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <a href="/admin/categories/{{ category.id }}/edit"
+           class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</a>
+        <button hx-delete="/admin/categories/{{ category.id }}"
+                hx-confirm="Delete '{{ category.name }}'? This will also delete all associated sources."
+                hx-target="#category-{{ category.id }}"
+                hx-swap="outerHTML"
+                class="text-red-600 hover:text-red-900">
+            Delete
+        </button>
+    </td>
+</tr>
