@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request, Response
 from telegram import Update
 
 from interfaces.telegram_bot.bot import BotConfig, TelegramBot
+from src.admin.app import admin_app
 from src.core.config import get_config
 from src.orchestrator import Orchestrator
 
@@ -77,6 +78,9 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+
+# Mount admin UI at /admin
+app.mount("/admin", admin_app)
 
 
 @app.get("/")
