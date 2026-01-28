@@ -4,6 +4,7 @@ litellm==1.81.4
 # Web framework
 fastapi==0.128.0
 uvicorn==0.40.0
+python-multipart==0.0.20
 
 # HTTP client
 httpx==0.28.1
