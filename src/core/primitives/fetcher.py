@@ -40,7 +40,7 @@ class FetchResult:
     elapsed_ms: int
     encoding: str | None = None
     content_length: int | None = None
-    
+
     @property
     def ok(self) -> bool:
         """True if request was successful (2xx status)."""
@@ -66,18 +66,18 @@ class FetcherConfig:
 class Fetcher:
     """
     Fetches content from URLs.
-    
+
     Usage:
         fetcher = Fetcher()
         result = await fetcher.fetch("https://example.com")
-        
+
         if result.ok:
             print(result.text)
     """
-    
+
     def __init__(self, config: FetcherConfig | None = None):
         self.config = config or FetcherConfig()
-    
+
     async def fetch(self, url: str, **kwargs: Any) -> FetchResult:
         """Fetch content from URL."""
         timeout = kwargs.get("timeout", self.config.timeout)
@@ -86,31 +86,31 @@ class Fetcher:
             **self.config.extra_headers,
             **kwargs.get("headers", {}),
         }
-        
+
         start_time = datetime.now()
-        
+
         async with httpx.AsyncClient(
             timeout=timeout,
             follow_redirects=self.config.follow_redirects,
             verify=self.config.verify_ssl,
         ) as client:
-            
+
             last_error: Exception | None = None
-            
+
             for attempt in range(self.config.max_retries):
                 try:
                     response = await client.get(url, headers=headers)
-                    
+
                     elapsed_ms = int((datetime.now() - start_time).total_seconds() * 1000)
                     content_type = self._detect_content_type(response)
-                    
+
                     text = None
                     if content_type not in (ContentType.PDF, ContentType.BINARY):
                         try:
                             text = response.text
                         except Exception:
                             pass
-                    
+
                     return FetchResult(
                         url=str(response.url),
                         status_code=response.status_code,
@@ -123,25 +123,27 @@ class Fetcher:
                         encoding=response.encoding,
                         content_length=len(response.content),
                     )
-                    
+
                 except httpx.TimeoutException as e:
                     last_error = e
                     logger.warning(f"Timeout fetching {url}, attempt {attempt + 1}")
-                    
+
                 except httpx.RequestError as e:
                     last_error = e
                     logger.warning(f"Error fetching {url}: {e}, attempt {attempt + 1}")
-                
+
                 if attempt < self.config.max_retries - 1:
                     import asyncio
                     await asyncio.sleep(self.config.retry_delay * (attempt + 1))
-            
-            raise RuntimeError(f"Failed to fetch {url} after {self.config.max_retries} attempts") from last_error
-    
+
+            raise RuntimeError(
+                f"Failed to fetch {url} after {self.config.max_retries} attempts"
+            ) from last_error
+
     def _detect_content_type(self, response: httpx.Response) -> ContentType:
         """Detect content type from response headers."""
         content_type_header = response.headers.get("content-type", "").lower()
-        
+
         if "application/json" in content_type_header:
             return ContentType.JSON
         elif "text/html" in content_type_header:
@@ -162,7 +164,7 @@ class Fetcher:
                 return ContentType.HTML
             elif content.startswith(b"<?xml"):
                 return ContentType.XML
-            
+
             return ContentType.UNKNOWN
 
 

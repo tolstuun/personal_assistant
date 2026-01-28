@@ -6,9 +6,8 @@ Provides connection pooling and session management.
 """
 
 import logging
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from functools import lru_cache
-from typing import Any, AsyncGenerator
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (

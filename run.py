@@ -6,8 +6,9 @@ Usage:
     sudo python run.py
 """
 
-import uvicorn
 from pathlib import Path
+
+import uvicorn
 
 # Let's Encrypt certificate paths
 SSL_CERT = "/etc/letsencrypt/live/aioid.vip/fullchain.pem"
@@ -22,10 +23,10 @@ def main():
         print(f"Expected: {SSL_KEY}")
         print("\nRun: sudo certbot certonly --standalone -d aioid.vip")
         return
-    
+
     print("Starting Personal Assistant with HTTPS...")
     print("URL: https://aioid.vip")
-    
+
     uvicorn.run(
         "src.api.main:app",
         host="0.0.0.0",

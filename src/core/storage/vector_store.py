@@ -6,7 +6,6 @@ Supports storing documents with embeddings and semantic search.
 """
 
 import logging
-import uuid
 from typing import Any
 
 from qdrant_client import AsyncQdrantClient
@@ -19,7 +18,7 @@ from src.core.storage.base import (
     VectorSearchResult,
     VectorStoreConfig,
 )
-from src.core.storage.exceptions import ConfigurationError, ConnectionError, NotFoundError
+from src.core.storage.exceptions import ConfigurationError, ConnectionError
 
 logger = logging.getLogger(__name__)
 
