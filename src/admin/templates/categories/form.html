@@ -12,12 +12,8 @@
 
 <div class="bg-white rounded-lg shadow max-w-2xl">
     <form
-        {% if category %}
-        hx-put="/admin/categories/{{ category.id }}"
-        {% else %}
-        hx-post="/admin/categories"
-        {% endif %}
-        hx-target="body"
+        method="post"
+        action="/admin/categories{% if category %}/{{ category.id }}{% endif %}"
         class="p-6 space-y-6"
     >
         <div>

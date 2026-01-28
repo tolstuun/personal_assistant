@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -95,7 +95,7 @@ async def new_source_form(
     )
 
 
-@router.post("", response_class=HTMLResponse)
+@router.post("")
 async def create_source(
     request: Request,
     name: str = Form(...),
@@ -106,7 +106,7 @@ async def create_source(
     fetch_interval_minutes: int = Form(60),
     enabled: str = Form(""),
     _: bool = Depends(require_auth)
-) -> Response:
+) -> RedirectResponse:
     """
     Create a new source.
 
@@ -121,23 +121,17 @@ async def create_source(
         enabled: Checkbox value ("true" or "").
 
     Returns:
-        HTMX redirect to sources list.
+        Redirect to sources list.
     """
     # Validate category_id
     if not category_id:
-        return Response(
-            content="Category is required",
-            status_code=400,
-            headers={"HX-Reswap": "none", "HX-Trigger": "showError"}
-        )
+        # TODO: Show error message to user
+        return RedirectResponse(url="/admin/sources/new", status_code=303)
 
     try:
         category_uuid = uuid.UUID(category_id)
     except ValueError:
-        return Response(
-            content="Invalid category",
-            status_code=400,
-        )
+        return RedirectResponse(url="/admin/sources/new", status_code=303)
 
     # Convert checkbox value to boolean
     is_enabled = enabled == "true"
@@ -159,9 +153,7 @@ async def create_source(
         session.add(source)
         await session.commit()
 
-    return Response(
-        status_code=200,
-        headers={"HX-Redirect": "/admin/sources"}
+    return RedirectResponse(url="/admin/sources", status_code=303
     )
 
 
@@ -206,7 +198,7 @@ async def edit_source_form(
     )
 
 
-@router.put("/{source_id}", response_class=HTMLResponse)
+@router.post("/{source_id}")
 async def update_source(
     request: Request,
     source_id: uuid.UUID,
@@ -218,9 +210,9 @@ async def update_source(
     fetch_interval_minutes: int = Form(60),
     enabled: str = Form(""),
     _: bool = Depends(require_auth)
-) -> Response:
+) -> RedirectResponse:
     """
-    Update a source.
+    Update a source via POST (HTML forms can't send PUT).
 
     Args:
         request: FastAPI request.
@@ -234,16 +226,20 @@ async def update_source(
         enabled: Checkbox value ("true" or "").
 
     Returns:
-        HTMX redirect to sources list.
+        Redirect to sources list.
     """
     # Validate category_id
     if not category_id:
-        return Response(content="Category is required", status_code=400)
+        return RedirectResponse(
+            url=f"/admin/sources/{source_id}/edit", status_code=303
+        )
 
     try:
         category_uuid = uuid.UUID(category_id)
     except ValueError:
-        return Response(content="Invalid category", status_code=400)
+        return RedirectResponse(
+            url=f"/admin/sources/{source_id}/edit", status_code=303
+        )
 
     # Convert checkbox value to boolean
     is_enabled = enabled == "true"
@@ -255,14 +251,13 @@ async def update_source(
     async with db.session() as session:
         stmt = (
             select(Source)
-            .options(selectinload(Source.category))
             .where(Source.id == source_id)
         )
         result = await session.execute(stmt)
         source = result.scalar_one_or_none()
 
         if not source:
-            return Response(status_code=404, content="Source not found")
+            return RedirectResponse(url="/admin/sources", status_code=303)
 
         source.name = name
         source.url = url
@@ -273,11 +268,7 @@ async def update_source(
         source.enabled = is_enabled
         await session.commit()
 
-    # Redirect to list after update
-    return Response(
-        status_code=200,
-        headers={"HX-Redirect": "/admin/sources"}
-    )
+    return RedirectResponse(url="/admin/sources", status_code=303)
 
 
 @router.post("/{source_id}/toggle")

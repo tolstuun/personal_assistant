@@ -12,12 +12,8 @@
 
 <div class="bg-white rounded-lg shadow max-w-2xl">
     <form
-        {% if source %}
-        hx-put="/admin/sources/{{ source.id }}"
-        {% else %}
-        hx-post="/admin/sources"
-        {% endif %}
-        hx-target="body"
+        method="post"
+        action="/admin/sources{% if source %}/{{ source.id }}{% endif %}"
         class="p-6 space-y-6"
     >
         <div>

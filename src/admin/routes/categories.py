@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
@@ -77,14 +77,14 @@ async def new_category_form(
     )
 
 
-@router.post("", response_class=HTMLResponse)
+@router.post("")
 async def create_category(
     request: Request,
     name: str = Form(...),
     digest_section: str = Form(...),
     keywords: str = Form(""),
     _: bool = Depends(require_auth)
-) -> HTMLResponse:
+) -> RedirectResponse:
     """
     Create a new category.
 
@@ -95,9 +95,8 @@ async def create_category(
         keywords: Comma-separated keywords.
 
     Returns:
-        Redirect to categories list or form with errors.
+        Redirect to categories list.
     """
-    # Parse keywords
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
 
     db = await get_db()
@@ -111,11 +110,7 @@ async def create_category(
         session.add(category)
         await session.commit()
 
-    # Return HTMX redirect
-    return Response(
-        status_code=200,
-        headers={"HX-Redirect": "/admin/categories"}
-    )
+    return RedirectResponse(url="/admin/categories", status_code=303)
 
 
 @router.get("/{category_id}/edit", response_class=HTMLResponse)
@@ -154,7 +149,7 @@ async def edit_category_form(
     )
 
 
-@router.put("/{category_id}", response_class=HTMLResponse)
+@router.post("/{category_id}")
 async def update_category(
     request: Request,
     category_id: uuid.UUID,
@@ -162,9 +157,9 @@ async def update_category(
     digest_section: str = Form(...),
     keywords: str = Form(""),
     _: bool = Depends(require_auth)
-) -> HTMLResponse:
+) -> RedirectResponse:
     """
-    Update a category.
+    Update a category via POST (HTML forms can't send PUT).
 
     Args:
         request: FastAPI request.
@@ -174,34 +169,26 @@ async def update_category(
         keywords: Updated comma-separated keywords.
 
     Returns:
-        Updated category row HTML for HTMX swap.
+        Redirect to categories list.
     """
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
 
     db = await get_db()
 
     async with db.session() as session:
-        stmt = (
-            select(Category)
-            .options(selectinload(Category.sources))
-            .where(Category.id == category_id)
-        )
+        stmt = select(Category).where(Category.id == category_id)
         result = await session.execute(stmt)
         category = result.scalar_one_or_none()
 
         if not category:
-            return Response(status_code=404, content="Category not found")
+            return RedirectResponse(url="/admin/categories", status_code=303)
 
         category.name = name
         category.digest_section = digest_section
         category.keywords = keyword_list
         await session.commit()
 
-    # Redirect to list after update
-    return Response(
-        status_code=200,
-        headers={"HX-Redirect": "/admin/categories"}
-    )
+    return RedirectResponse(url="/admin/categories", status_code=303)
 
 
 @router.delete("/{category_id}")
