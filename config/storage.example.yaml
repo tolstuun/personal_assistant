@@ -1,0 +1,36 @@
+# Storage Configuration
+# Copy to storage.yaml and customize for your environment.
+# Uses environment variables with defaults for docker-compose setup.
+
+postgres:
+  host: ${POSTGRES_HOST:-localhost}
+  port: ${POSTGRES_PORT:-5432}
+  database: ${POSTGRES_DB:-assistant}
+  user: ${POSTGRES_USER:-assistant}
+  password: ${POSTGRES_PASSWORD:-assistant}
+  pool_size: 5
+  pool_max_overflow: 10
+  echo: false  # Set to true to log SQL queries
+
+redis:
+  host: ${REDIS_HOST:-localhost}
+  port: ${REDIS_PORT:-6379}
+  db: 0
+  password: ${REDIS_PASSWORD:-}
+  default_ttl: 3600  # 1 hour in seconds
+  max_connections: 10
+
+qdrant:
+  host: ${QDRANT_HOST:-localhost}
+  port: ${QDRANT_PORT:-6333}
+  grpc_port: ${QDRANT_GRPC_PORT:-6334}
+  collection_prefix: assistant_
+  # api_key: ${QDRANT_API_KEY:-}  # Uncomment for cloud Qdrant
+
+minio:
+  endpoint: ${MINIO_ENDPOINT:-localhost:9000}
+  access_key: ${MINIO_ACCESS_KEY:-minioadmin}
+  secret_key: ${MINIO_SECRET_KEY:-minioadmin}
+  bucket: ${MINIO_BUCKET:-assistant}
+  secure: false  # Set to true for HTTPS
+  region: us-east-1
