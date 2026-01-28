@@ -101,10 +101,10 @@ async def create_source(
     name: str = Form(...),
     url: str = Form(...),
     source_type: str = Form(...),
-    category_id: uuid.UUID = Form(...),
+    category_id: str = Form(...),
     keywords: str = Form(""),
     fetch_interval_minutes: int = Form(60),
-    enabled: bool = Form(False),
+    enabled: str = Form(""),
     _: bool = Depends(require_auth)
 ) -> Response:
     """
@@ -115,14 +115,33 @@ async def create_source(
         name: Source name.
         url: Source URL.
         source_type: Type (website, twitter, reddit).
-        category_id: Associated category.
+        category_id: Associated category UUID as string.
         keywords: Comma-separated keywords.
         fetch_interval_minutes: Fetch interval.
-        enabled: Whether source is enabled.
+        enabled: Checkbox value ("true" or "").
 
     Returns:
         HTMX redirect to sources list.
     """
+    # Validate category_id
+    if not category_id:
+        return Response(
+            content="Category is required",
+            status_code=400,
+            headers={"HX-Reswap": "none", "HX-Trigger": "showError"}
+        )
+
+    try:
+        category_uuid = uuid.UUID(category_id)
+    except ValueError:
+        return Response(
+            content="Invalid category",
+            status_code=400,
+        )
+
+    # Convert checkbox value to boolean
+    is_enabled = enabled == "true"
+
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
 
     db = await get_db()
@@ -132,10 +151,10 @@ async def create_source(
             name=name,
             url=url,
             source_type=SourceType(source_type),
-            category_id=category_id,
+            category_id=category_uuid,
             keywords=keyword_list,
             fetch_interval_minutes=fetch_interval_minutes,
-            enabled=enabled,
+            enabled=is_enabled,
         )
         session.add(source)
         await session.commit()
@@ -194,12 +213,12 @@ async def update_source(
     name: str = Form(...),
     url: str = Form(...),
     source_type: str = Form(...),
-    category_id: uuid.UUID = Form(...),
+    category_id: str = Form(...),
     keywords: str = Form(""),
     fetch_interval_minutes: int = Form(60),
-    enabled: bool = Form(False),
+    enabled: str = Form(""),
     _: bool = Depends(require_auth)
-) -> HTMLResponse:
+) -> Response:
     """
     Update a source.
 
@@ -209,14 +228,26 @@ async def update_source(
         name: Updated name.
         url: Updated URL.
         source_type: Updated type.
-        category_id: Updated category.
+        category_id: Updated category UUID as string.
         keywords: Updated keywords.
         fetch_interval_minutes: Updated interval.
-        enabled: Updated enabled status.
+        enabled: Checkbox value ("true" or "").
 
     Returns:
-        Updated source row HTML for HTMX swap.
+        HTMX redirect to sources list.
     """
+    # Validate category_id
+    if not category_id:
+        return Response(content="Category is required", status_code=400)
+
+    try:
+        category_uuid = uuid.UUID(category_id)
+    except ValueError:
+        return Response(content="Invalid category", status_code=400)
+
+    # Convert checkbox value to boolean
+    is_enabled = enabled == "true"
+
     keyword_list = [k.strip() for k in keywords.split(",") if k.strip()]
 
     db = await get_db()
@@ -236,10 +267,10 @@ async def update_source(
         source.name = name
         source.url = url
         source.source_type = SourceType(source_type)
-        source.category_id = category_id
+        source.category_id = category_uuid
         source.keywords = keyword_list
         source.fetch_interval_minutes = fetch_interval_minutes
-        source.enabled = enabled
+        source.enabled = is_enabled
         await session.commit()
 
     # Redirect to list after update
