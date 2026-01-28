@@ -3,12 +3,23 @@ Tests for MinIO/S3 file storage.
 
 Requires docker-compose minio service to be running.
 Run: docker-compose up -d minio
+
+Note: These tests are skipped in CI (MinIO service not available).
+Run locally with docker-compose for full test coverage.
 """
+
+import os
 
 import pytest
 
 from src.core.storage.exceptions import NotFoundError
 from src.core.storage.file_storage import FileStorage
+
+# Skip all tests in this file if running in CI (no MinIO service)
+pytestmark = pytest.mark.skipif(
+    os.environ.get("CI") == "true" and not os.environ.get("MINIO_ENDPOINT"),
+    reason="MinIO not available in CI"
+)
 
 
 @pytest.mark.asyncio
