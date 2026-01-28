@@ -1,25 +1,61 @@
 # LLM Configuration
-# Copy this file to llm.yaml and fill in your API keys
+# Copy to llm.yaml and set your API keys as environment variables
+#
+# To switch providers: change current_provider below
+# To use a different model tier: change default_tier or use get_llm(tier="fast")
 
-default_provider: litellm
-default_model: claude-sonnet-4-20250514
+llm:
+  # Current provider - change this to switch everything at once
+  # Options: anthropic, openai, google, ollama
+  current_provider: anthropic
 
-providers:
-  litellm:
+  # Provider configurations
+  providers:
+    anthropic:
+      api_key: ${ANTHROPIC_API_KEY}
+      default_model: claude-sonnet-4-20250514
+      # Model tiers - use these aliases instead of remembering model names
+      models:
+        fast: claude-haiku-3-5-20241022
+        smart: claude-sonnet-4-20250514
+        smartest: claude-opus-4-20250514
+
+    openai:
+      api_key: ${OPENAI_API_KEY}
+      default_model: gpt-4o
+      models:
+        fast: gpt-4o-mini
+        smart: gpt-4o
+        smartest: gpt-4o
+
+    google:
+      api_key: ${GOOGLE_API_KEY}
+      default_model: gemini-2.0-flash
+      models:
+        fast: gemini-2.0-flash
+        smart: gemini-2.0-flash
+        smartest: gemini-2.0-pro
+
+    ollama:
+      # No API key needed for local Ollama
+      base_url: http://localhost:11434
+      default_model: llama3
+      models:
+        fast: llama3
+        smart: llama3:70b
+        smartest: llama3:70b
+
+  # Global settings (apply to all providers unless overridden)
+  settings:
     temperature: 0.7
     max_tokens: 4096
     timeout: 60.0
-    extra: {}
 
-aliases:
-  fast: gpt-4o-mini
-  smart: claude-sonnet-4-20250514
-  smartest: claude-opus-4-20250514
-  local: ollama/llama3
-
-task_models:
-  summarization: gpt-4o-mini
-  extraction: claude-sonnet-4-20250514
-  analysis: claude-sonnet-4-20250514
-  translation: gpt-4o-mini
-  code: claude-sonnet-4-20250514
+  # Optional: Override model tier for specific tasks
+  # Uses tier names (fast/smart/smartest), not model names
+  # If a task is not listed, uses the provider's default_model
+  task_overrides:
+    summarization: fast
+    translation: fast
+    code_review: smartest
+    analysis: smart

@@ -2,6 +2,26 @@
 
 ## 2026-01-28
 
+### LLM Config Redesign (New)
+Redesigned LLM configuration to make switching between providers easy:
+
+- **Single setting to switch providers:** Change `current_provider` to use a different LLM backend (anthropic, openai, google, ollama)
+- **Model tiers:** Use `fast`, `smart`, or `smartest` instead of remembering specific model names. Each provider maps these to their best models.
+- **Task overrides:** Optionally assign tasks like `summarization` or `code_review` to specific tiers
+- **Per-provider API keys:** Each provider has its own API key in the config
+
+**Usage examples:**
+```python
+from src.core.llm import get_llm
+
+llm = get_llm()                      # Default model from current provider
+llm = get_llm(tier="fast")           # Fast model (e.g., claude-haiku)
+llm = get_llm(task="summarization")  # Uses task_overrides if defined
+llm = get_llm(provider="ollama")     # Temporarily use different provider
+```
+
+**How to switch providers:** Edit `config/llm.yaml` and change `current_provider: anthropic` to `current_provider: openai` (or google, ollama).
+
 ### CI/CD Workflow (New)
 Added GitHub Actions workflow for automated testing and deployment:
 
