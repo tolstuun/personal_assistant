@@ -86,6 +86,7 @@ def get_config(config_dir: str | None = None) -> dict[str, Any]:
         "llm.example.yaml", "llm.yaml",
         "storage.example.yaml", "storage.yaml",
         "telegram.example.yaml", "telegram.yaml",
+        "admin.example.yaml", "admin.yaml",
     ]
     for filename in config_files:
         file_path = base_dir / filename
