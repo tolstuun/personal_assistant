@@ -1,6 +1,0 @@
-# Telegram Bot Configuration
-telegram:
-  token: "8480546737:AAFcZFfsRRG3U29t9KmVOF2FVFF_VK1qRyU"
-  webhook_url: "https://aioid.vip"
-  allowed_users:
-    - 100601343

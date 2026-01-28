@@ -1,14 +1,14 @@
 # Telegram Bot Configuration
-# Copy to telegram.yaml and fill in your values
+# Copy to telegram.yaml and set environment variables
+#
+# Required environment variables:
+#   TELEGRAM_BOT_TOKEN - Bot token from @BotFather
+#   TELEGRAM_WEBHOOK_URL - Your server's HTTPS URL (optional, has default)
+#
+# Get your user ID from @userinfobot on Telegram
 
-# Bot token from @BotFather
-token: ${TELEGRAM_BOT_TOKEN}
-
-# Your server's public URL (must be HTTPS)
-# Example: https://assistant.yourdomain.com
-webhook_url: ${TELEGRAM_WEBHOOK_URL}
-
-# List of Telegram user IDs allowed to use the bot
-# Get your ID from @userinfobot
-allowed_users:
-  - 100601343
+telegram:
+  token: ${TELEGRAM_BOT_TOKEN}
+  webhook_url: ${TELEGRAM_WEBHOOK_URL:-https://aioid.vip}
+  allowed_users:
+    - 123456789  # Replace with your Telegram user ID

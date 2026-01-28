@@ -41,11 +41,11 @@ htmlcov/
 .pytest_cache/
 .mypy_cache/
 
-# Config files with secrets (keep examples)
+# Config files with secrets (keep examples only)
 config/llm.yaml
 config/storage.yaml
+config/telegram.yaml
 !config/*.example.yaml
-!config/telegram.yaml
 
 # Environment variables
 .env
