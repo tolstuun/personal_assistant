@@ -56,6 +56,13 @@ Before writing any code:
 - Ensure all tests pass
 - Push to remote
 
+### 6. CI Verification
+After pushing any changes to a branch or master:
+- Check CI status: `~/.local/bin/gh run list --limit 1`
+- If CI fails, fetch logs: `~/.local/bin/gh run view <run-id> --log-failed`
+- Analyze the error, fix the issue, and push again
+- Repeat until CI is green
+
 ## Commands
 
 **Note:** Additional tools are installed in `~/.local/bin` (including `gh` CLI). Add to PATH if needed:
