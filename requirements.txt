@@ -30,9 +30,10 @@ qdrant-client==1.16.2
 # S3
 boto3==1.42.36
 
-# HTML parsing
+# HTML parsing and content extraction
 beautifulsoup4==4.14.3
 lxml==6.0.2
+trafilatura==2.0.0
 
 # PDF parsing
 PyMuPDF==1.26.7

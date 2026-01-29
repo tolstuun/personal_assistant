@@ -37,9 +37,10 @@ dependencies = [
     # S3
     "boto3>=1.34.0",
     
-    # HTML parsing
+    # HTML parsing and content extraction
     "beautifulsoup4>=4.12.0",
     "lxml>=5.1.0",
+    "trafilatura>=2.0.0",
     
     # PDF parsing
     "pymupdf>=1.24.0",
