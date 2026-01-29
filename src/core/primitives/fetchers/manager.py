@@ -118,7 +118,7 @@ class FetcherManager:
                     source_stats = await self._fetch_source(session, source)
                     stats.sources_fetched += 1
                     stats.articles_found += source_stats["found"]
-                    stats.articles_new += source_stats["new"]
+                    stats.articles_new += source_stats["saved"]
                     stats.articles_filtered += source_stats["filtered"]
                     stats.articles_old += source_stats["old"]
                 except NotImplementedError as e:
@@ -135,7 +135,7 @@ class FetcherManager:
         self,
         source_id: str,
         save_to_db: bool = True,
-    ) -> list[ExtractedArticle]:
+    ) -> dict:
         """
         Fetch content from a specific source by ID.
 
@@ -144,7 +144,8 @@ class FetcherManager:
             save_to_db: Whether to save articles to database.
 
         Returns:
-            List of extracted articles (before filtering).
+            Dict with stats: articles_found, articles_saved, articles_old,
+            articles_duplicate, articles_filtered.
         """
         db = await get_db()
 
@@ -166,12 +167,31 @@ class FetcherManager:
 
             articles = await fetcher.fetch_articles(source.url)
 
+            stats = {
+                "articles_found": len(articles),
+                "articles_saved": 0,
+                "articles_old": 0,
+                "articles_duplicate": 0,
+                "articles_filtered": 0,
+            }
+
             if save_to_db:
-                await self._save_articles(session, source, articles)
+                save_stats = await self._save_articles(session, source, articles)
+                stats["articles_saved"] = save_stats["saved"]
+                stats["articles_old"] = save_stats["old"]
+                stats["articles_duplicate"] = save_stats["duplicate"]
+                stats["articles_filtered"] = save_stats["filtered"]
+
                 source.last_fetched_at = datetime.utcnow()
                 await session.commit()
 
-            return articles
+                logger.info(
+                    f"Source {source.name}: found {stats['articles_found']}, "
+                    f"saved {stats['articles_saved']}, old {stats['articles_old']}, "
+                    f"duplicate {stats['articles_duplicate']}"
+                )
+
+            return stats
 
     async def _fetch_source(self, session, source: Source) -> dict:
         """
@@ -182,7 +202,7 @@ class FetcherManager:
             source: Source to fetch from.
 
         Returns:
-            Dict with stats: found, new, filtered, old.
+            Dict with stats: found, saved, filtered, old, duplicate.
         """
         logger.info(f"Fetching from source: {source.name} ({source.source_type.value})")
 
@@ -193,20 +213,16 @@ class FetcherManager:
         # Fetch articles
         articles = await fetcher.fetch_articles(source.url)
 
+        # Save articles and get stats
+        save_stats = await self._save_articles(session, source, articles)
+
         stats = {
             "found": len(articles),
-            "new": 0,
-            "filtered": 0,
-            "old": 0,
+            "saved": save_stats["saved"],
+            "filtered": save_stats["filtered"],
+            "old": save_stats["old"],
+            "duplicate": save_stats["duplicate"],
         }
-
-        # Save articles
-        saved_count, filtered_count, old_count = await self._save_articles(
-            session, source, articles
-        )
-        stats["new"] = saved_count
-        stats["filtered"] = filtered_count
-        stats["old"] = old_count
 
         # Update last_fetched_at
         source.last_fetched_at = datetime.utcnow()
@@ -214,7 +230,8 @@ class FetcherManager:
 
         logger.info(
             f"Source {source.name}: found {stats['found']}, "
-            f"new {stats['new']}, filtered {stats['filtered']}, old {stats['old']}"
+            f"saved {stats['saved']}, filtered {stats['filtered']}, "
+            f"old {stats['old']}, duplicate {stats['duplicate']}"
         )
 
         return stats
@@ -224,7 +241,7 @@ class FetcherManager:
         session,
         source: Source,
         articles: list[ExtractedArticle],
-    ) -> tuple[int, int, int]:
+    ) -> dict:
         """
         Save articles to database with deduplication, date, and keyword filtering.
 
@@ -234,11 +251,14 @@ class FetcherManager:
             articles: List of extracted articles.
 
         Returns:
-            Tuple of (saved_count, filtered_count, old_count).
+            Dict with keys: saved, filtered, old, duplicate.
         """
-        saved_count = 0
-        filtered_count = 0
-        old_count = 0
+        stats = {
+            "saved": 0,
+            "filtered": 0,
+            "old": 0,
+            "duplicate": 0,
+        }
 
         # Calculate date cutoff for filtering
         cutoff_date = self._get_date_cutoff(source)
@@ -250,18 +270,19 @@ class FetcherManager:
             )
             if existing.scalar_one_or_none():
                 logger.debug(f"Skipping duplicate: {article.url}")
+                stats["duplicate"] += 1
                 continue
 
             # Apply date filtering
             if not self._is_recent_enough(article, cutoff_date):
                 logger.debug(f"Filtered by date: {article.title} ({article.published_at})")
-                old_count += 1
+                stats["old"] += 1
                 continue
 
             # Apply keyword filtering
             if not self._matches_keywords(article, source):
                 logger.debug(f"Filtered by keywords: {article.title}")
-                filtered_count += 1
+                stats["filtered"] += 1
                 continue
 
             # Create new article
@@ -275,10 +296,10 @@ class FetcherManager:
                 fetched_at=datetime.utcnow(),
             )
             session.add(db_article)
-            saved_count += 1
+            stats["saved"] += 1
 
         await session.flush()
-        return saved_count, filtered_count, old_count
+        return stats
 
     def _get_date_cutoff(self, source: Source) -> datetime:
         """

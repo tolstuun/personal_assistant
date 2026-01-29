@@ -18,31 +18,68 @@ import asyncio
 import sys
 
 
-async def test_source(source_id: str) -> None:
+async def test_source(source_id: str, save: bool = False) -> None:
     """
     Test fetching from a database source.
 
     Args:
         source_id: UUID of the source to fetch.
+        save: Whether to save articles to database.
     """
     from src.core.primitives.fetchers.manager import FetcherManager
+    from src.core.primitives.fetchers.website import WebsiteFetcher
+    from src.core.models import Source, SourceType
+    from src.core.storage.postgres import get_db
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
 
     print(f"Fetching from source: {source_id}")
     print("-" * 60)
 
-    manager = FetcherManager()
-
     try:
-        articles = await manager.fetch_source(source_id, save_to_db=False)
-        print(f"\nFound {len(articles)} articles:\n")
+        if save:
+            # Use manager to fetch and save
+            manager = FetcherManager()
+            stats = await manager.fetch_source(source_id, save_to_db=True)
+            print("\nFetch complete:")
+            print(f"  Found: {stats['articles_found']}")
+            print(f"  Saved: {stats['articles_saved']}")
+            print(f"  Old (filtered by date): {stats['articles_old']}")
+            print(f"  Duplicate: {stats['articles_duplicate']}")
+            print(f"  Filtered (by keywords): {stats['articles_filtered']}")
+        else:
+            # Dry run: fetch but don't save
+            db = await get_db()
+            async with db.session() as session:
+                stmt = (
+                    select(Source)
+                    .options(selectinload(Source.category))
+                    .where(Source.id == source_id)
+                )
+                result = await session.execute(stmt)
+                source = result.scalar_one_or_none()
 
-        for i, article in enumerate(articles, 1):
-            print(f"{i}. {article.title}")
-            print(f"   URL: {article.url}")
-            if article.published_at:
-                print(f"   Date: {article.published_at}")
-            print(f"   Content preview: {article.content[:200]}...")
-            print()
+                if not source:
+                    print(f"Error: Source not found: {source_id}")
+                    sys.exit(1)
+
+                if source.source_type != SourceType.WEBSITE:
+                    print(f"Error: Only website sources are supported (got {source.source_type})")
+                    sys.exit(1)
+
+                fetcher = WebsiteFetcher()
+                articles = await fetcher.fetch_articles(source.url)
+
+                print(f"\nFound {len(articles)} articles (dry run, not saved):\n")
+
+                for i, article in enumerate(articles, 1):
+                    print(f"{i}. {article.title}")
+                    print(f"   URL: {article.url}")
+                    if article.published_at:
+                        print(f"   Date: {article.published_at}")
+                    content_preview = article.content[:200].replace("\n", " ")
+                    print(f"   Content: {content_preview}...")
+                    print()
 
     except ValueError as e:
         print(f"Error: {e}")
@@ -105,13 +142,18 @@ def main() -> None:
         default=10,
         help="Maximum number of articles to fetch (default: 10)",
     )
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Save articles to database (default: dry run)",
+    )
 
     args = parser.parse_args()
 
     if args.url:
         asyncio.run(test_url(args.url, args.max))
     elif args.source_id:
-        asyncio.run(test_source(args.source_id))
+        asyncio.run(test_source(args.source_id, save=args.save))
     else:
         parser.print_help()
         sys.exit(1)
