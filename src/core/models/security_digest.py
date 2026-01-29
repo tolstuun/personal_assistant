@@ -178,6 +178,7 @@ class Article(Base):
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     digest_section: Mapped[str | None] = mapped_column(String(50), nullable=True)
     relevance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )
@@ -191,6 +192,7 @@ class Article(Base):
 
     __table_args__ = (
         Index("ix_articles_fetched_at", "fetched_at"),
+        Index("ix_articles_published_at", "published_at"),
         Index("ix_articles_relevance_score", "relevance_score"),
         Index("ix_articles_digest_id", "digest_id"),
     )
