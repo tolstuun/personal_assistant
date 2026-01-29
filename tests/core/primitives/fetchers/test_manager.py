@@ -22,6 +22,7 @@ class TestFetchStats:
             articles_found=20,
             articles_new=15,
             articles_filtered=5,
+            articles_old=3,
             errors=["Error 1"],
         )
 
@@ -30,6 +31,7 @@ class TestFetchStats:
         assert stats.articles_found == 20
         assert stats.articles_new == 15
         assert stats.articles_filtered == 5
+        assert stats.articles_old == 3
         assert len(stats.errors) == 1
 
 
@@ -249,6 +251,95 @@ class TestSourceDueChecking:
 
         # Should not be due (next_fetch is in the future)
         assert next_fetch > now
+
+
+class TestDateFiltering:
+    """Tests for article date filtering logic."""
+
+    @pytest.fixture
+    def manager(self):
+        """Create a FetcherManager instance."""
+        return FetcherManager()
+
+    @pytest.fixture
+    def sample_source(self):
+        """Create a sample source."""
+        source = MagicMock(spec=Source)
+        source.last_fetched_at = None
+        return source
+
+    def test_get_date_cutoff_first_fetch(self, manager, sample_source):
+        """Test cutoff is 24 hours ago for first fetch."""
+        sample_source.last_fetched_at = None
+
+        cutoff = manager._get_date_cutoff(sample_source)
+        now = datetime.utcnow()
+
+        # Cutoff should be approximately 24 hours ago
+        expected = now - timedelta(hours=24)
+        # Allow 1 minute tolerance
+        assert abs((cutoff - expected).total_seconds()) < 60
+
+    def test_get_date_cutoff_subsequent_fetch(self, manager, sample_source):
+        """Test cutoff is last_fetched_at for subsequent fetches."""
+        last_fetch = datetime.utcnow() - timedelta(hours=6)
+        sample_source.last_fetched_at = last_fetch
+
+        cutoff = manager._get_date_cutoff(sample_source)
+
+        assert cutoff == last_fetch
+
+    def test_is_recent_enough_no_published_date(self, manager):
+        """Test articles without published_at are included."""
+        article = ExtractedArticle(
+            url="https://example.com/test",
+            title="Test Article",
+            content="Content",
+            published_at=None,
+            source_url="https://example.com/",
+        )
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+
+        assert manager._is_recent_enough(article, cutoff)
+
+    def test_is_recent_enough_recent_article(self, manager):
+        """Test recent articles are included."""
+        article = ExtractedArticle(
+            url="https://example.com/test",
+            title="Test Article",
+            content="Content",
+            published_at=datetime.utcnow() - timedelta(hours=1),
+            source_url="https://example.com/",
+        )
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+
+        assert manager._is_recent_enough(article, cutoff)
+
+    def test_is_recent_enough_old_article(self, manager):
+        """Test old articles are excluded."""
+        article = ExtractedArticle(
+            url="https://example.com/test",
+            title="Test Article",
+            content="Content",
+            published_at=datetime.utcnow() - timedelta(hours=48),
+            source_url="https://example.com/",
+        )
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+
+        assert not manager._is_recent_enough(article, cutoff)
+
+    def test_is_recent_enough_exact_cutoff(self, manager):
+        """Test article exactly at cutoff is included."""
+        cutoff = datetime.utcnow() - timedelta(hours=24)
+        article = ExtractedArticle(
+            url="https://example.com/test",
+            title="Test Article",
+            content="Content",
+            published_at=cutoff,
+            source_url="https://example.com/",
+        )
+
+        assert manager._is_recent_enough(article, cutoff)
 
 
 class TestTwitterRedditStubs:

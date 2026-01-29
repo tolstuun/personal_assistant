@@ -194,6 +194,7 @@ class TestArticleModel:
             "summary",
             "digest_section",
             "relevance_score",
+            "published_at",
             "fetched_at",
             "digest_id",
         ]
@@ -286,6 +287,7 @@ class TestIndexes:
         indexes = {idx.name for idx in Article.__table__.indexes}
 
         assert "ix_articles_fetched_at" in indexes
+        assert "ix_articles_published_at" in indexes
         assert "ix_articles_relevance_score" in indexes
         assert "ix_articles_digest_id" in indexes
 
