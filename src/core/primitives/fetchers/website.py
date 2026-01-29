@@ -177,13 +177,27 @@ class WebsiteFetcher(BaseFetcher):
 
             # Skip common non-article patterns
             path_lower = parsed.path.lower()
-            skip_patterns = [
+
+            # Patterns that should be skipped anywhere in path
+            skip_anywhere = [
                 "/tag/",
                 "/tags/",
                 "/category/",
                 "/categories/",
                 "/author/",
                 "/page/",
+                ".xml",
+                ".pdf",
+                ".jpg",
+                ".png",
+                ".gif",
+            ]
+            if any(pattern in path_lower for pattern in skip_anywhere):
+                continue
+
+            # Patterns that should only skip if they're the final path segment
+            # (e.g., /about should skip, but /about/press-releases/article should not)
+            skip_exact = [
                 "/search",
                 "/login",
                 "/register",
@@ -194,13 +208,10 @@ class WebsiteFetcher(BaseFetcher):
                 "/terms",
                 "/feed",
                 "/rss",
-                ".xml",
-                ".pdf",
-                ".jpg",
-                ".png",
-                ".gif",
             ]
-            if any(pattern in path_lower for pattern in skip_patterns):
+            path_stripped = path_lower.rstrip("/")
+            if any(path_stripped == pattern or path_stripped.endswith(pattern)
+                   for pattern in skip_exact):
                 continue
 
             # Skip very short paths (likely homepage links)
@@ -237,6 +248,8 @@ class WebsiteFetcher(BaseFetcher):
             "/blog/",
             "/news/",
             "/story/",
+            "/press-releases/",
+            "/press/",
             "/20",  # Year in URL like /2024/01/
         ]
         return any(pattern in path for pattern in article_patterns)
