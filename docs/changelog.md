@@ -1,5 +1,34 @@
 # Changelog
 
+## 2026-01-29
+
+### Content Fetcher for Security Digest (New)
+Added content fetching primitives for the Security Digest system:
+
+- **Website Fetcher** (`src/core/primitives/fetchers/website.py`) — Fetches articles from websites. Downloads listing pages, extracts article links, then fetches each article and extracts content using trafilatura.
+
+- **Fetcher Manager** (`src/core/primitives/fetchers/manager.py`) — Orchestrates fetching from all sources. Checks which sources are due (based on fetch interval), dispatches to correct fetcher, handles deduplication by URL, applies keyword filtering, and stores articles.
+
+- **Twitter/Reddit Stubs** — Placeholder implementations for future Twitter and Reddit support.
+
+**Features:**
+- Automatic article link detection (skips navigation, footers, tag pages)
+- Content extraction using trafilatura (handles most news sites automatically)
+- Keyword filtering using source and category keywords
+- URL deduplication (won't fetch same article twice)
+- Configurable fetch intervals per source
+
+**Testing:**
+```bash
+# Test fetching from a URL directly (dry run)
+python -m src.core.primitives.fetchers.test_fetch --url https://krebsonsecurity.com/
+
+# Test fetching from a database source
+python -m src.core.primitives.fetchers.test_fetch <source-uuid>
+```
+
+**New dependency:** trafilatura (for article content extraction)
+
 ## 2026-01-28
 
 ### LLM Config Redesign (New)

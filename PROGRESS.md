@@ -4,9 +4,28 @@ Tracking Personal Assistant development progress.
 
 ## Current Status
 
-**Phase 4: Storage Layer** — ✅ Complete
+**Phase 2: First Agent (Security Digest)** — In Progress
 
 ## Changelog
+
+### 2026-01-29: Content Fetcher
+
+**Done:**
+- [x] Created decision doc: docs/decisions/006-content-fetcher.md
+- [x] src/core/primitives/fetchers/website.py — Website fetcher using trafilatura
+- [x] src/core/primitives/fetchers/manager.py — Fetcher orchestration
+- [x] src/core/primitives/fetchers/twitter.py — Twitter stub
+- [x] src/core/primitives/fetchers/reddit.py — Reddit stub
+- [x] src/core/primitives/fetchers/test_fetch.py — CLI test script
+- [x] tests/core/primitives/fetchers/ — 35 tests
+- [x] Added trafilatura dependency
+
+**Features:**
+- Automatic article link extraction from listing pages
+- Content extraction using trafilatura (readability algorithm)
+- Keyword filtering (source + category keywords)
+- URL deduplication
+- Configurable fetch intervals
 
 ### 2026-01-28: LLM Config Redesign
 
@@ -78,11 +97,13 @@ Tracking Personal Assistant development progress.
 - [x] Config loader
 - [x] First primitive (Fetcher)
 
-### Phase 2: First Agent (Security Digest)
-- [ ] Primitives: Parser, Extractor, Verifier
-- [ ] Source configs (RSS, websites)
-- [ ] Security Digest agent logic
-- [ ] Tests
+### Phase 2: First Agent (Security Digest) 🔄
+- [x] Data model (categories, sources, articles, digests)
+- [x] Admin UI for managing sources
+- [x] Content fetcher primitive (website fetcher)
+- [ ] LLM summarization and scoring
+- [ ] Digest generation (HTML output)
+- [ ] Scheduler integration
 - [ ] Manual CLI execution
 
 ### Phase 3: Orchestrator + API
