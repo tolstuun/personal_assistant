@@ -226,6 +226,45 @@ class TestLinkExtraction:
         assert len(links) == 1
         assert "https://example.com/article/good-long-path" in links
 
+    def test_about_page_skipped_but_nested_paths_kept(self, fetcher):
+        """Test that /about is skipped but /about/press-releases/article is kept."""
+        html = """
+        <html>
+        <body>
+            <a href="/about">About Us</a>
+            <a href="/about/">About Us Trailing Slash</a>
+            <a href="/about/press-releases/new-product">Press Release</a>
+            <a href="/about/team/john-doe">Team Member</a>
+        </body>
+        </html>
+        """
+        base_url = "https://example.com/"
+
+        links = fetcher._extract_article_links(html, base_url)
+
+        # /about and /about/ should be skipped, but nested paths should be kept
+        assert len(links) == 2
+        assert "https://example.com/about/press-releases/new-product" in links
+        assert "https://example.com/about/team/john-doe" in links
+        assert "https://example.com/about" not in links
+
+    def test_press_releases_links(self, fetcher):
+        """Test that press releases style links are extracted."""
+        html = """
+        <html>
+        <body>
+            <a href="/about/press-releases/2024-security-update">Security Update</a>
+            <a href="/press/2024/new-feature">New Feature</a>
+            <a href="/news/breaking-story">Breaking Story</a>
+        </body>
+        </html>
+        """
+        base_url = "https://www.kaspersky.com/"
+
+        links = fetcher._extract_article_links(html, base_url)
+
+        assert len(links) == 3
+
 
 class TestLooksLikeArticleUrl:
     """Tests for article URL pattern detection."""
@@ -242,6 +281,14 @@ class TestLooksLikeArticleUrl:
     def test_blog_path(self, fetcher):
         """Test detection of /blog/ path."""
         assert fetcher._looks_like_article_url("https://example.com/blog/test")
+
+    def test_press_releases_path(self, fetcher):
+        """Test detection of /press-releases/ path."""
+        assert fetcher._looks_like_article_url("https://example.com/press-releases/test")
+
+    def test_press_path(self, fetcher):
+        """Test detection of /press/ path."""
+        assert fetcher._looks_like_article_url("https://example.com/press/2024/test")
 
     def test_news_path(self, fetcher):
         """Test detection of /news/ path."""
