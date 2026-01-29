@@ -91,7 +91,9 @@ class Source(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     url: Mapped[str] = mapped_column(Text, nullable=False)
     source_type: Mapped[SourceType] = mapped_column(
-        Enum(SourceType), nullable=False, default=SourceType.WEBSITE
+        Enum(SourceType, values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+        default=SourceType.WEBSITE
     )
     keywords: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -132,7 +134,9 @@ class Digest(Base):
     )
     date: Mapped[datetime] = mapped_column(Date, unique=True, nullable=False)
     status: Mapped[DigestStatus] = mapped_column(
-        Enum(DigestStatus), default=DigestStatus.BUILDING, nullable=False
+        Enum(DigestStatus, values_callable=lambda x: [e.value for e in x]),
+        default=DigestStatus.BUILDING,
+        nullable=False
     )
     html_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
