@@ -32,13 +32,13 @@ def database_config() -> DatabaseConfig:
     )
 
 
-@pytest_asyncio.fixture(scope="module")
+@pytest_asyncio.fixture
 async def database(database_config: DatabaseConfig) -> Database:
     """
     Provide a connected database instance with tables created.
 
-    Creates all tables at module setup and drops them at teardown.
-    This is a module-scoped fixture to reduce setup cost.
+    Creates tables at setup and drops them at teardown.
+    Function-scoped to avoid connection sharing issues.
     """
     db = Database(database_config)
     await db.connect()
@@ -61,7 +61,7 @@ async def clean_database(database: Database) -> Database:
     """
     Provide a clean database for each test.
 
-    Cleans up all data between tests but doesn't recreate tables.
+    Cleans up all data between tests.
     """
     # Clean up data before test
     from src.core.models import Article, Category, Digest, Source
