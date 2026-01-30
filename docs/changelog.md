@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-01-30
+
+### Background Worker for Content Ingestion (New)
+Added a production-ready background worker that automatically fetches content from Security Digest sources:
+
+- **Worker Module** (`src/workers/security_digest_worker.py`) — Runs continuously and fetches content at regular intervals. Handles errors gracefully, supports graceful shutdown, and uses jitter to prevent thundering herd problems.
+
+- **CLI Entrypoints** — Can be run as `python -m src.workers.security_digest_worker` or using the `pa-worker` console script.
+
+- **Configuration** — Supports both environment variables and config files. Key settings:
+  - `WORKER_INTERVAL_SECONDS` — How long to wait between fetch cycles (default: 300)
+  - `WORKER_JITTER_SECONDS` — Random jitter to add (default: 60)
+  - `WORKER_MAX_SOURCES` — Max sources per cycle (default: 10)
+  - `WORKER_LOG_LEVEL` — Logging level (default: INFO)
+
+**Features:**
+- Graceful shutdown on SIGINT/SIGTERM (no stack traces, completes current fetch)
+- Error handling that prevents crashes (logs errors and continues)
+- Jitter prevents multiple workers from hitting sources at the same time
+- Detailed logging with fetch statistics
+- Works in Docker, systemd, or Kubernetes
+
+**How to run:**
+```bash
+# Run locally
+pa-worker
+
+# Run with custom settings
+WORKER_INTERVAL_SECONDS=120 pa-worker
+
+# Run in Docker
+docker-compose up -d worker
+```
+
+**How to stop:**
+- Press Ctrl+C when running in foreground
+- `docker-compose stop worker` when running in Docker
+- Worker completes current fetch and exits cleanly
+
 ## 2026-01-29
 
 ### Content Fetcher for Security Digest (New)

@@ -8,6 +8,23 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-01-30: Background Worker
+
+**Done:**
+- [x] Created decision doc: docs/decisions/007-background-worker.md
+- [x] src/workers/security_digest_worker.py — production-ready worker
+- [x] tests/workers/test_security_digest_worker.py — comprehensive tests
+- [x] Added pa-worker console script to pyproject.toml
+- [x] Updated README with worker instructions
+- [x] Updated docs/changelog.md
+
+**Features:**
+- Infinite loop with configurable interval and jitter
+- Graceful shutdown on SIGINT/SIGTERM
+- Error handling prevents crashes
+- Configurable via environment variables or YAML
+- Suitable for Docker, systemd, or Kubernetes deployment
+
 ### 2026-01-29: Content Fetcher
 
 **Done:**
@@ -101,9 +118,9 @@ Tracking Personal Assistant development progress.
 - [x] Data model (categories, sources, articles, digests)
 - [x] Admin UI for managing sources
 - [x] Content fetcher primitive (website fetcher)
+- [x] Background worker for content ingestion
 - [ ] LLM summarization and scoring
 - [ ] Digest generation (HTML output)
-- [ ] Scheduler integration
 - [ ] Manual CLI execution
 
 ### Phase 3: Orchestrator + API
