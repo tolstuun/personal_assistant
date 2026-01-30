@@ -61,6 +61,9 @@ dev = [
     "mypy>=1.9.0",
 ]
 
+[project.scripts]
+pa-worker = "src.workers.security_digest_worker:main"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
