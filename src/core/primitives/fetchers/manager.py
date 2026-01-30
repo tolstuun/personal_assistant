@@ -97,14 +97,22 @@ class FetcherManager:
             Source.last_fetched_at <= now_utc - (Source.fetch_interval_minutes * interval_1m),
         )
 
+        # Track sources attempted in this run to avoid retrying failures
+        attempted_source_ids: set[str] = set()
+
         # Process sources one at a time to avoid holding multiple locks
         for _ in range(max_sources):
             async with db.session() as session:
                 # Select one due source with row lock (SKIP LOCKED for multi-worker safety)
+                # Exclude sources already attempted in this run
                 stmt = (
                     select(Source)
                     .options(selectinload(Source.category))
-                    .where(Source.enabled.is_(True), due_when)
+                    .where(
+                        Source.enabled.is_(True),
+                        due_when,
+                        Source.id.notin_(attempted_source_ids) if attempted_source_ids else True,
+                    )
                     .order_by(Source.last_fetched_at.asc().nullsfirst())
                     .with_for_update(skip_locked=True)
                     .limit(1)
@@ -117,6 +125,8 @@ class FetcherManager:
                     # No more due sources available
                     break
 
+                # Mark as attempted
+                attempted_source_ids.add(source.id)
                 stats.sources_checked += 1
 
                 # Fetch from this source (lock held until commit/rollback)
