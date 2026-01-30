@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import func, literal_column, or_, select
 from sqlalchemy.orm import selectinload
 
 from src.core.models import Article, Source, SourceType
@@ -63,13 +63,19 @@ class FetcherManager:
         A source is due if:
         - It's enabled
         - last_fetched_at is NULL, OR
-        - last_fetched_at + fetch_interval_minutes < now()
+        - last_fetched_at <= (now_utc - fetch_interval_minutes)
+
+        This method is safe for concurrent workers. It uses SELECT ... FOR UPDATE
+        SKIP LOCKED to claim sources one at a time, preventing multiple workers
+        from processing the same source simultaneously.
 
         Args:
             max_sources: Maximum number of sources to fetch in one run.
 
         Returns:
             Statistics about the fetch operation.
+            - sources_checked: Number of sources successfully claimed (locked) for processing
+            - sources_fetched: Number of sources where fetch completed successfully
         """
         stats = FetchStats(
             sources_checked=0,
@@ -83,37 +89,37 @@ class FetcherManager:
 
         db = await get_db()
 
-        async with db.session() as session:
-            # Query for due sources
-            now = datetime.utcnow()
+        # Define due condition (evaluated in SQL for efficiency and correctness)
+        now_utc = func.timezone("utc", func.now())
+        interval_1m = literal_column("interval '1 minute'")
+        due_when = or_(
+            Source.last_fetched_at.is_(None),
+            Source.last_fetched_at <= now_utc - (Source.fetch_interval_minutes * interval_1m),
+        )
 
-            stmt = (
-                select(Source)
-                .options(selectinload(Source.category))
-                .where(Source.enabled.is_(True))
-                .order_by(Source.last_fetched_at.asc().nullsfirst())
-                .limit(max_sources)
-            )
+        # Process sources one at a time to avoid holding multiple locks
+        for _ in range(max_sources):
+            async with db.session() as session:
+                # Select one due source with row lock (SKIP LOCKED for multi-worker safety)
+                stmt = (
+                    select(Source)
+                    .options(selectinload(Source.category))
+                    .where(Source.enabled.is_(True), due_when)
+                    .order_by(Source.last_fetched_at.asc().nullsfirst())
+                    .with_for_update(skip_locked=True)
+                    .limit(1)
+                )
 
-            result = await session.execute(stmt)
-            sources = result.scalars().all()
+                result = await session.execute(stmt)
+                source = result.scalar_one_or_none()
 
-            stats.sources_checked = len(sources)
+                if not source:
+                    # No more due sources available
+                    break
 
-            for source in sources:
-                # Check if source is due
-                if source.last_fetched_at is not None:
-                    next_fetch = source.last_fetched_at + timedelta(
-                        minutes=source.fetch_interval_minutes
-                    )
-                    if next_fetch > now:
-                        logger.debug(
-                            f"Source {source.name} not due yet "
-                            f"(next fetch at {next_fetch})"
-                        )
-                        continue
+                stats.sources_checked += 1
 
-                # Fetch from this source
+                # Fetch from this source (lock held until commit/rollback)
                 try:
                     source_stats = await self._fetch_source(session, source)
                     stats.sources_fetched += 1
@@ -125,9 +131,11 @@ class FetcherManager:
                     # Expected for Twitter/Reddit stubs
                     logger.info(f"Source {source.name}: {e}")
                     stats.errors.append(f"{source.name}: {str(e)}")
+                    await session.rollback()  # Release lock immediately
                 except Exception as e:
                     logger.error(f"Error fetching {source.name}: {e}")
                     stats.errors.append(f"{source.name}: {str(e)}")
+                    await session.rollback()  # Release lock immediately
 
         return stats
 
