@@ -390,7 +390,7 @@ class TestFetchDueSourcesIntegration:
         )
 
         # Monkeypatch fetch_articles to not hit network
-        async def mock_fetch_articles(url):
+        async def mock_fetch_articles(self, url):
             return []
 
         monkeypatch.setattr(
@@ -508,7 +508,7 @@ class TestFetchDueSourcesIntegration:
         )
 
         # Monkeypatch fetch_articles
-        async def mock_fetch_articles(url):
+        async def mock_fetch_articles(self, url):
             return []
 
         monkeypatch.setattr(
@@ -576,7 +576,7 @@ class TestFetchDueSourcesIntegration:
         )
 
         # Monkeypatch fetch_articles with delay to hold lock
-        async def mock_fetch_articles_with_delay(url):
+        async def mock_fetch_articles_with_delay(self, url):
             await asyncio.sleep(0.2)  # Hold lock for a bit
             return []
 
@@ -668,7 +668,7 @@ class TestFetchDueSourcesIntegration:
         attempted_urls = []
 
         # Monkeypatch fetch_articles to fail on first, succeed on second
-        async def mock_fetch_articles_with_error(url):
+        async def mock_fetch_articles_with_error(self, url):
             attempted_urls.append(url)
             if url == "https://example.com/fail":
                 raise Exception("Network error")
