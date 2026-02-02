@@ -23,6 +23,61 @@ pip install -e .
 python -m src.core.llm.test_connection
 ```
 
+## Development Setup
+
+For development work (running tests, linting, type checking):
+
+```bash
+# Install with dev dependencies
+pip install -e ".[dev]"
+
+# Or use pinned versions (includes dev deps)
+pip install -r requirements.txt
+```
+
+**Note:** `requirements.txt` contains pinned versions for both runtime and dev dependencies, used by CI for reproducible builds.
+
+### Running Tests
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src
+
+# Run specific test file
+pytest tests/path/to/test.py -v
+```
+
+### Integration Tests
+
+Integration tests require PostgreSQL. Start it via docker-compose:
+
+```bash
+# Start infrastructure (Postgres, Redis, etc.)
+docker-compose up -d
+
+# Run fetcher integration tests
+pytest tests/core/primitives/fetchers/ -v
+```
+
+### Linting and Type Checking
+
+```bash
+# Lint
+ruff check .
+
+# Auto-fix lint issues
+ruff check . --fix
+
+# Format code
+ruff format .
+
+# Type check
+mypy src/
+```
+
 ## Documentation
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — Full architecture description
