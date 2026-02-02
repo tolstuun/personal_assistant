@@ -22,3 +22,25 @@ def utcnow() -> datetime:
         True
     """
     return datetime.now(UTC)
+
+
+def utcnow_naive() -> datetime:
+    """
+    Get current UTC time as a naive datetime (no timezone info).
+
+    This function is intended for use as a default value in SQLAlchemy
+    DateTime columns that don't have timezone=True. It provides the same
+    behavior as the deprecated datetime.utcnow() but uses the modern
+    datetime.now(UTC) internally.
+
+    For all other uses, prefer utcnow() which returns timezone-aware datetimes.
+
+    Returns:
+        datetime: Current UTC time without timezone information.
+
+    Example:
+        >>> now = utcnow_naive()
+        >>> now.tzinfo is None
+        True
+    """
+    return datetime.now(UTC).replace(tzinfo=None)
