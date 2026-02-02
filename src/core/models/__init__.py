@@ -12,6 +12,7 @@ from src.core.models.security_digest import (
     Source,
     SourceType,
 )
+from src.core.models.settings import Setting
 
 __all__ = [
     "Category",
@@ -20,4 +21,5 @@ __all__ = [
     "Article",
     "Digest",
     "DigestStatus",
+    "Setting",
 ]

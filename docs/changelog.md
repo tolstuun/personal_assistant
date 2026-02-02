@@ -2,6 +2,32 @@
 
 ## 2026-02-02
 
+### Admin Settings Page (New)
+Added a Settings page to the admin UI for managing system configuration:
+
+- **Settings Page** (`/admin/settings`) — View and edit system settings through the web UI. No more editing config files for common settings.
+
+- **Database-Stored Settings** — Settings are stored in a new `settings` table. Changes take effect without restarting services.
+
+- **Configurable Settings:**
+  - **Fetch Interval** — How often to fetch new content (default: 60 minutes)
+  - **Digest Time** — When to generate the daily digest (default: 08:00)
+  - **Telegram Notifications** — Enable/disable notifications (default: enabled)
+  - **Digest Sections** — Which sections to include (default: security_news, product_news, market)
+
+- **Worker Integration** — The background worker now reads `fetch_interval_minutes` from the database. Change the interval in the admin UI and the worker picks it up on the next cycle.
+
+- **Systemd Service** — Added `deploy/pa-worker.service` for running the worker as a system service.
+
+**How to use:**
+1. Visit `/admin/settings` (requires admin login)
+2. Edit any setting and click "Save"
+3. Changes are applied immediately (worker reads on next cycle)
+
+**How to reset:** Click "Reset" next to any customized setting to restore the default value.
+
+For technical details, see: `docs/decisions/010-admin-settings.md`
+
 ### Article Persistence Scalability (Improvement)
 Replaced per-article duplicate checking with bulk Postgres UPSERT for better performance and concurrency safety:
 

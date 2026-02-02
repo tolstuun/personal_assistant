@@ -60,7 +60,7 @@ class TestAuthRoutes:
         client = TestClient(app)
 
         response = client.get("/login")
-        assert '<form' in response.text
+        assert "<form" in response.text
         assert 'type="password"' in response.text
 
     def test_logout_redirects_to_login(self) -> None:
@@ -100,3 +100,29 @@ class TestProtectedRoutes:
 
         response = client.get("/sources")
         assert response.status_code == 303
+
+    def test_settings_redirects_without_auth(self) -> None:
+        """Settings page redirects to login without auth."""
+        app = create_admin_app()
+        client = TestClient(app, follow_redirects=False)
+
+        response = client.get("/settings")
+        assert response.status_code == 303
+
+
+class TestSettingsRoutes:
+    """Tests for settings routes."""
+
+    def test_settings_route_exists(self) -> None:
+        """Settings route is configured."""
+        app = create_admin_app()
+        routes = [route.path for route in app.routes]
+
+        assert "/settings" in routes
+
+    def test_settings_update_route_exists(self) -> None:
+        """Settings update route is configured."""
+        app = create_admin_app()
+        routes = [route.path for route in app.routes]
+
+        assert "/settings/{key}" in routes
