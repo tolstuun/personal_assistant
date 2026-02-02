@@ -10,7 +10,7 @@ import pytest
 from src.core.models import Category, Source, SourceType
 from src.core.primitives.fetchers.base import ExtractedArticle
 from src.core.primitives.fetchers.manager import FetcherManager, FetchStats
-from src.core.utils.time import utcnow
+from src.core.utils.time import utcnow_naive
 
 
 class TestFetchStats:
@@ -230,12 +230,12 @@ class TestSourceDueChecking:
         """Test that source past fetch interval is due."""
         source = MagicMock(spec=Source)
         source.fetch_interval_minutes = 60
-        source.last_fetched_at = utcnow() - timedelta(minutes=120)
+        source.last_fetched_at = utcnow_naive() - timedelta(minutes=120)
 
         next_fetch = source.last_fetched_at + timedelta(
             minutes=source.fetch_interval_minutes
         )
-        now = utcnow()
+        now = utcnow_naive()
 
         # Should be due (next_fetch is in the past)
         assert next_fetch < now
@@ -244,12 +244,12 @@ class TestSourceDueChecking:
         """Test that source within fetch interval is not due."""
         source = MagicMock(spec=Source)
         source.fetch_interval_minutes = 60
-        source.last_fetched_at = utcnow() - timedelta(minutes=30)
+        source.last_fetched_at = utcnow_naive() - timedelta(minutes=30)
 
         next_fetch = source.last_fetched_at + timedelta(
             minutes=source.fetch_interval_minutes
         )
-        now = utcnow()
+        now = utcnow_naive()
 
         # Should not be due (next_fetch is in the future)
         assert next_fetch > now
@@ -275,7 +275,7 @@ class TestDateFiltering:
         sample_source.last_fetched_at = None
 
         cutoff = manager._get_date_cutoff(sample_source)
-        now = utcnow()
+        now = utcnow_naive()
 
         # Cutoff should be approximately 24 hours ago
         expected = now - timedelta(hours=24)
@@ -284,7 +284,7 @@ class TestDateFiltering:
 
     def test_get_date_cutoff_subsequent_fetch(self, manager, sample_source):
         """Test cutoff is last_fetched_at for subsequent fetches."""
-        last_fetch = utcnow() - timedelta(hours=6)
+        last_fetch = utcnow_naive() - timedelta(hours=6)
         sample_source.last_fetched_at = last_fetch
 
         cutoff = manager._get_date_cutoff(sample_source)
@@ -300,7 +300,7 @@ class TestDateFiltering:
             published_at=None,
             source_url="https://example.com/",
         )
-        cutoff = utcnow() - timedelta(hours=24)
+        cutoff = utcnow_naive() - timedelta(hours=24)
 
         assert manager._is_recent_enough(article, cutoff)
 
@@ -310,10 +310,10 @@ class TestDateFiltering:
             url="https://example.com/test",
             title="Test Article",
             content="Content",
-            published_at=utcnow() - timedelta(hours=1),
+            published_at=utcnow_naive() - timedelta(hours=1),
             source_url="https://example.com/",
         )
-        cutoff = utcnow() - timedelta(hours=24)
+        cutoff = utcnow_naive() - timedelta(hours=24)
 
         assert manager._is_recent_enough(article, cutoff)
 
@@ -323,16 +323,16 @@ class TestDateFiltering:
             url="https://example.com/test",
             title="Test Article",
             content="Content",
-            published_at=utcnow() - timedelta(hours=48),
+            published_at=utcnow_naive() - timedelta(hours=48),
             source_url="https://example.com/",
         )
-        cutoff = utcnow() - timedelta(hours=24)
+        cutoff = utcnow_naive() - timedelta(hours=24)
 
         assert not manager._is_recent_enough(article, cutoff)
 
     def test_is_recent_enough_exact_cutoff(self, manager):
         """Test article exactly at cutoff is included."""
-        cutoff = utcnow() - timedelta(hours=24)
+        cutoff = utcnow_naive() - timedelta(hours=24)
         article = ExtractedArticle(
             url="https://example.com/test",
             title="Test Article",
@@ -400,7 +400,7 @@ class TestFetchDueSourcesIntegration:
         )
 
         # Create test data
-        now = utcnow()
+        now = utcnow_naive()
         async with clean_database.session() as session:
             # Create category
             category = Category(
