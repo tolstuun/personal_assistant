@@ -25,6 +25,7 @@ from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.storage.postgres import Base
+from src.core.utils.time import utcnow_naive
 
 
 class SourceType(enum.Enum):
@@ -60,7 +61,7 @@ class Category(Base):
     digest_section: Mapped[str] = mapped_column(String(50), nullable=False)
     keywords: Mapped[list[str]] = mapped_column(ARRAY(Text), default=list)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow_naive, nullable=False
     )
 
     # Relationships
@@ -102,7 +103,7 @@ class Source(Base):
     )
     last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow_naive, nullable=False
     )
 
     # Relationships
@@ -140,7 +141,7 @@ class Digest(Base):
     )
     html_path: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow_naive, nullable=False
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     notified_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
@@ -180,7 +181,7 @@ class Article(Base):
     relevance_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     fetched_at: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False
+        DateTime, default=utcnow_naive, nullable=False
     )
     digest_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("digests.id"), nullable=True
