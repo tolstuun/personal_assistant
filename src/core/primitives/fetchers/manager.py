@@ -18,6 +18,7 @@ from src.core.primitives.fetchers.reddit import RedditFetcher
 from src.core.primitives.fetchers.twitter import TwitterFetcher
 from src.core.primitives.fetchers.website import WebsiteFetcher
 from src.core.storage.postgres import get_db
+from src.core.utils.time import utcnow
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +201,7 @@ class FetcherManager:
                 stats["articles_duplicate"] = save_stats["duplicate"]
                 stats["articles_filtered"] = save_stats["filtered"]
 
-                source.last_fetched_at = datetime.utcnow()
+                source.last_fetched_at = utcnow()
                 await session.commit()
 
                 logger.info(
@@ -243,7 +244,7 @@ class FetcherManager:
         }
 
         # Update last_fetched_at
-        source.last_fetched_at = datetime.utcnow()
+        source.last_fetched_at = utcnow()
         await session.commit()
 
         logger.info(
@@ -311,7 +312,7 @@ class FetcherManager:
                 raw_content=article.content,
                 published_at=article.published_at,
                 digest_section=source.category.digest_section if source.category else None,
-                fetched_at=datetime.utcnow(),
+                fetched_at=utcnow(),
             )
             session.add(db_article)
             stats["saved"] += 1
@@ -334,7 +335,7 @@ class FetcherManager:
             return source.last_fetched_at
         else:
             # First fetch: only keep articles from last 24 hours
-            return datetime.utcnow() - timedelta(hours=24)
+            return utcnow() - timedelta(hours=24)
 
     def _is_recent_enough(
         self,
