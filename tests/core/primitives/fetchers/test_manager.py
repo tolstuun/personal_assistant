@@ -232,9 +232,7 @@ class TestSourceDueChecking:
         source.fetch_interval_minutes = 60
         source.last_fetched_at = utcnow_naive() - timedelta(minutes=120)
 
-        next_fetch = source.last_fetched_at + timedelta(
-            minutes=source.fetch_interval_minutes
-        )
+        next_fetch = source.last_fetched_at + timedelta(minutes=source.fetch_interval_minutes)
         now = utcnow_naive()
 
         # Should be due (next_fetch is in the past)
@@ -246,9 +244,7 @@ class TestSourceDueChecking:
         source.fetch_interval_minutes = 60
         source.last_fetched_at = utcnow_naive() - timedelta(minutes=30)
 
-        next_fetch = source.last_fetched_at + timedelta(
-            minutes=source.fetch_interval_minutes
-        )
+        next_fetch = source.last_fetched_at + timedelta(minutes=source.fetch_interval_minutes)
         now = utcnow_naive()
 
         # Should not be due (next_fetch is in the future)
@@ -382,13 +378,12 @@ class TestFetchDueSourcesIntegration:
         - not due C: last_fetched_at = now - (interval/2)
         - disabled D: enabled=false even if old
         """
+
         # Monkeypatch get_db to return our test database
         async def mock_get_db():
             return clean_database
 
-        monkeypatch.setattr(
-            "src.core.primitives.fetchers.manager.get_db", mock_get_db
-        )
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
 
         # Monkeypatch fetch_articles to not hit network
         async def mock_fetch_articles(self, url):
@@ -500,13 +495,12 @@ class TestFetchDueSourcesIntegration:
 
         Creates 3 due sources, fetches with max_sources=2.
         """
+
         # Monkeypatch get_db
         async def mock_get_db():
             return clean_database
 
-        monkeypatch.setattr(
-            "src.core.primitives.fetchers.manager.get_db", mock_get_db
-        )
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
 
         # Monkeypatch fetch_articles
         async def mock_fetch_articles(self, url):
@@ -568,13 +562,12 @@ class TestFetchDueSourcesIntegration:
         Creates 2 due sources, runs 2 workers concurrently with max_sources=1 each.
         Both sources should end up processed (not the same one twice).
         """
+
         # Monkeypatch get_db
         async def mock_get_db():
             return clean_database
 
-        monkeypatch.setattr(
-            "src.core.primitives.fetchers.manager.get_db", mock_get_db
-        )
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
 
         # Monkeypatch fetch_articles with delay to hold lock
         async def mock_fetch_articles_with_delay(self, url):
@@ -646,9 +639,7 @@ class TestFetchDueSourcesIntegration:
             sources = list(result.scalars().all())
 
             updated_count = sum(1 for s in sources if s.last_fetched_at is not None)
-            assert (
-                updated_count == 2
-            ), "Both sources should be updated (one by each worker)"
+            assert updated_count == 2, "Both sources should be updated (one by each worker)"
 
     @pytest.mark.asyncio
     async def test_error_handling_releases_lock(self, clean_database, monkeypatch):
@@ -657,13 +648,12 @@ class TestFetchDueSourcesIntegration:
 
         Creates 2 due sources, first one raises exception, second should still process.
         """
+
         # Monkeypatch get_db
         async def mock_get_db():
             return clean_database
 
-        monkeypatch.setattr(
-            "src.core.primitives.fetchers.manager.get_db", mock_get_db
-        )
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
 
         # Track which sources were attempted
         attempted_urls = []
@@ -737,9 +727,213 @@ class TestFetchDueSourcesIntegration:
             result = await session.execute(select(Source))
             sources = {s.id: s for s in result.scalars().all()}
 
-            assert (
-                sources[source_1_id].last_fetched_at is None
-            ), "Failed source should not update"
-            assert (
-                sources[source_2_id].last_fetched_at is not None
-            ), "Successful source should update"
+            assert sources[source_1_id].last_fetched_at is None, "Failed source should not update"
+            assert sources[source_2_id].last_fetched_at is not None, (
+                "Successful source should update"
+            )
+
+
+class TestBulkUpsertIntegration:
+    """Integration tests for bulk UPSERT article persistence."""
+
+    @pytest.mark.asyncio
+    async def test_bulk_insert_counts_duplicates(self, clean_database, monkeypatch):
+        """
+        Test that duplicate URLs within a batch are handled correctly.
+
+        Setup: 1 category + 1 due source.
+        Monkeypatch fetcher to return two articles with the SAME url.
+
+        Assert:
+        - DB contains exactly 1 Article with that url
+        - Stats show inserted==1 and duplicates==1
+        """
+        from sqlalchemy import select
+
+        from src.core.models import Article
+
+        # Monkeypatch get_db
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
+
+        # Define the duplicate URL
+        duplicate_url = "https://example.com/duplicate-article"
+
+        # Monkeypatch fetch_articles to return two articles with the same URL
+        async def mock_fetch_articles_with_duplicates(self, url):
+            return [
+                ExtractedArticle(
+                    url=duplicate_url,
+                    title="First Article Title",
+                    content="First article content with security keyword.",
+                    published_at=utcnow_naive(),
+                    source_url=url,
+                ),
+                ExtractedArticle(
+                    url=duplicate_url,  # Same URL as first article
+                    title="Second Article Title",
+                    content="Second article content with security keyword.",
+                    published_at=utcnow_naive(),
+                    source_url=url,
+                ),
+            ]
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles_with_duplicates,
+        )
+
+        # Create test data
+        async with clean_database.session() as session:
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],  # No keyword filtering
+            )
+            session.add(category)
+            await session.flush()
+
+            source = Source(
+                category_id=category.id,
+                name="Test Source",
+                url="https://example.com/",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,  # Due for fetch
+            )
+            session.add(source)
+            await session.commit()
+
+        # Run fetch_due_sources
+        manager = FetcherManager()
+        stats = await manager.fetch_due_sources(max_sources=10)
+
+        # Verify stats
+        assert stats.sources_checked == 1, "Should claim 1 source"
+        assert stats.sources_fetched == 1, "Fetch should succeed"
+        assert stats.articles_found == 2, "Should find 2 articles"
+        assert stats.articles_new == 1, "Only 1 should be inserted (duplicate URL)"
+
+        # Verify database state
+        async with clean_database.session() as session:
+            result = await session.execute(select(Article).where(Article.url == duplicate_url))
+            articles = list(result.scalars().all())
+
+            assert len(articles) == 1, "Only 1 article with that URL should exist"
+            assert articles[0].url == duplicate_url
+
+    @pytest.mark.asyncio
+    async def test_concurrent_insert_same_url(self, clean_database, monkeypatch):
+        """
+        Test that concurrent workers inserting the same URL don't error.
+
+        Setup: 2 due sources (same category).
+        Monkeypatch both to return the SAME article url.
+        Run two manager executions concurrently.
+
+        Assert:
+        - Only 1 Article row exists for that url
+        - No unique violation happened (test completes without error)
+        - Combined stats reflect 1 insert + 1 duplicate
+        """
+        from sqlalchemy import select
+
+        from src.core.models import Article
+
+        # Monkeypatch get_db
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr("src.core.primitives.fetchers.manager.get_db", mock_get_db)
+
+        # Define the shared URL
+        shared_url = "https://example.com/shared-article"
+
+        # Monkeypatch fetch_articles with delay to create overlap
+        async def mock_fetch_articles_with_delay(self, url):
+            await asyncio.sleep(0.2)  # Create overlap between workers
+            return [
+                ExtractedArticle(
+                    url=shared_url,
+                    title=f"Article from {url}",
+                    content="Article content with security keyword.",
+                    published_at=utcnow_naive(),
+                    source_url=url,
+                ),
+            ]
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles_with_delay,
+        )
+
+        # Create test data
+        async with clean_database.session() as session:
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],  # No keyword filtering
+            )
+            session.add(category)
+            await session.flush()
+
+            # Create 2 due sources
+            source_1 = Source(
+                category_id=category.id,
+                name="Source 1",
+                url="https://example.com/source1",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_1)
+
+            source_2 = Source(
+                category_id=category.id,
+                name="Source 2",
+                url="https://example.com/source2",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_2)
+
+            await session.commit()
+
+        # Run two workers concurrently, each processing one source
+        manager1 = FetcherManager()
+        manager2 = FetcherManager()
+
+        # Both workers should complete without unique violation errors
+        results = await asyncio.gather(
+            manager1.fetch_due_sources(max_sources=1),
+            manager2.fetch_due_sources(max_sources=1),
+        )
+
+        stats1, stats2 = results
+
+        # Verify both workers processed their sources
+        assert stats1.sources_checked == 1, "Worker 1 should claim 1 source"
+        assert stats2.sources_checked == 1, "Worker 2 should claim 1 source"
+        assert stats1.sources_fetched == 1, "Worker 1 fetch should succeed"
+        assert stats2.sources_fetched == 1, "Worker 2 fetch should succeed"
+
+        # Verify combined stats show correct insert/duplicate counts
+        total_found = stats1.articles_found + stats2.articles_found
+        total_new = stats1.articles_new + stats2.articles_new
+
+        assert total_found == 2, "Should find 2 articles total (1 per source)"
+        assert total_new == 1, "Only 1 should be inserted (other is duplicate)"
+
+        # Verify database state - only 1 article with shared URL
+        async with clean_database.session() as session:
+            result = await session.execute(select(Article).where(Article.url == shared_url))
+            articles = list(result.scalars().all())
+
+            assert len(articles) == 1, "Only 1 article with shared URL should exist"
+            assert articles[0].url == shared_url

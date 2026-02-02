@@ -6,10 +6,12 @@ handles deduplication, keyword filtering, and database storage.
 """
 
 import logging
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, literal_column, or_, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import selectinload
 
 from src.core.models import Article, Source, SourceType
@@ -170,9 +172,7 @@ class FetcherManager:
 
         async with db.session() as session:
             stmt = (
-                select(Source)
-                .options(selectinload(Source.category))
-                .where(Source.id == source_id)
+                select(Source).options(selectinload(Source.category)).where(Source.id == source_id)
             )
             result = await session.execute(stmt)
             source = result.scalar_one_or_none()
@@ -264,6 +264,10 @@ class FetcherManager:
         """
         Save articles to database with deduplication, date, and keyword filtering.
 
+        Uses Postgres INSERT ... ON CONFLICT DO NOTHING for efficient, concurrency-safe
+        deduplication. Articles are first filtered by date and keywords, then bulk
+        inserted with conflict handling on the URL unique constraint.
+
         Args:
             session: Database session.
             source: Source the articles came from.
@@ -282,42 +286,74 @@ class FetcherManager:
         # Calculate date cutoff for filtering
         cutoff_date = self._get_date_cutoff(source)
 
-        for article in articles:
-            # Check if URL already exists (deduplication)
-            existing = await session.execute(
-                select(Article).where(Article.url == article.url)
-            )
-            if existing.scalar_one_or_none():
-                logger.debug(f"Skipping duplicate: {article.url}")
-                stats["duplicate"] += 1
-                continue
+        # First pass: apply date and keyword filters, collect rows to insert
+        rows_to_insert: list[dict] = []
+        now = utcnow_naive()
+        digest_section = source.category.digest_section if source.category else None
 
-            # Apply date filtering
+        for article in articles:
+            # Apply date filtering first (cheap, no DB access)
             if not self._is_recent_enough(article, cutoff_date):
                 logger.debug(f"Filtered by date: {article.title} ({article.published_at})")
                 stats["old"] += 1
                 continue
 
-            # Apply keyword filtering
+            # Apply keyword filtering (also cheap, no DB access)
             if not self._matches_keywords(article, source):
                 logger.debug(f"Filtered by keywords: {article.title}")
                 stats["filtered"] += 1
                 continue
 
-            # Create new article
-            db_article = Article(
-                source_id=source.id,
-                url=article.url,
-                title=article.title,
-                raw_content=article.content,
-                published_at=article.published_at,
-                digest_section=source.category.digest_section if source.category else None,
-                fetched_at=utcnow_naive(),
+            # Article passes filters, add to insert batch
+            rows_to_insert.append(
+                {
+                    "id": uuid.uuid4(),
+                    "source_id": source.id,
+                    "url": article.url,
+                    "title": article.title,
+                    "raw_content": article.content,
+                    "published_at": article.published_at,
+                    "digest_section": digest_section,
+                    "fetched_at": now,
+                }
             )
-            session.add(db_article)
-            stats["saved"] += 1
 
-        await session.flush()
+        # If no articles passed filtering, return early
+        if not rows_to_insert:
+            return stats
+
+        # Bulk insert with ON CONFLICT DO NOTHING, using RETURNING to count inserted rows
+        stmt = (
+            pg_insert(Article)
+            .values(rows_to_insert)
+            .on_conflict_do_nothing(index_elements=["url"])
+            .returning(Article.url)
+        )
+
+        try:
+            result = await session.execute(stmt)
+            inserted_urls = result.scalars().all()
+
+            # Calculate stats from RETURNING results
+            inserted_count = len(inserted_urls)
+            attempted_count = len(rows_to_insert)
+            duplicate_count = attempted_count - inserted_count
+
+            stats["saved"] = inserted_count
+            stats["duplicate"] = duplicate_count
+
+            if inserted_count > 0:
+                logger.debug(f"Inserted {inserted_count} articles from {source.name}")
+            if duplicate_count > 0:
+                logger.debug(f"Skipped {duplicate_count} duplicate URLs from {source.name}")
+
+            await session.flush()
+
+        except Exception as e:
+            logger.error(f"Bulk insert failed for source {source.name}: {e}")
+            await session.rollback()
+            raise
+
         return stats
 
     def _get_date_cutoff(self, source: Source) -> datetime:
