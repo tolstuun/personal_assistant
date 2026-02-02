@@ -1,5 +1,28 @@
 # Changelog
 
+## 2026-02-02
+
+### Article Persistence Scalability (Improvement)
+Replaced per-article duplicate checking with bulk Postgres UPSERT for better performance and concurrency safety:
+
+- **Bulk INSERT with ON CONFLICT DO NOTHING** — Instead of checking each URL with a separate SELECT query (N+1 pattern), all articles are now inserted in a single statement. Postgres handles duplicates automatically.
+
+- **Concurrency Safe** — Multiple workers can now insert overlapping URLs without causing unique constraint violations. The database handles the race condition atomically.
+
+- **Accurate Stats via RETURNING** — Uses Postgres RETURNING clause to count exactly which URLs were inserted vs. which were duplicates. More reliable than rowcount.
+
+**Performance improvement:**
+- Old: 50 articles = 100 queries (50 SELECT + 50 INSERT)
+- New: 50 articles = 1 query (bulk INSERT)
+
+**No changes needed:** This is an internal improvement. All filtering logic (date cutoff, keyword matching) remains identical. No API or config changes.
+
+**Testing:** Two new integration tests verify correct behavior:
+- `test_bulk_insert_counts_duplicates` — Verifies duplicate URLs in same batch are handled correctly
+- `test_concurrent_insert_same_url` — Verifies concurrent workers don't error on overlapping URLs
+
+For technical details, see: `docs/decisions/009-article-upsert.md`
+
 ## 2026-01-30
 
 ### Background Worker for Content Ingestion (New)
