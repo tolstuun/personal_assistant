@@ -1,5 +1,6 @@
 """Tests for FetcherManager."""
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock
@@ -364,3 +365,380 @@ class TestTwitterRedditStubs:
 
         with pytest.raises(NotImplementedError):
             await fetcher.fetch_articles("https://reddit.com/r/netsec")
+
+
+class TestFetchDueSourcesIntegration:
+    """Integration tests for fetch_due_sources with real database."""
+
+    @pytest.mark.asyncio
+    async def test_due_filtering_correctness(self, clean_database, monkeypatch):
+        """
+        Test that only enabled and due sources are fetched.
+
+        Creates 4 sources:
+        - due A: last_fetched_at NULL
+        - due B: last_fetched_at = now - 2*interval
+        - not due C: last_fetched_at = now - (interval/2)
+        - disabled D: enabled=false even if old
+        """
+        # Monkeypatch get_db to return our test database
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.manager.get_db", mock_get_db
+        )
+
+        # Monkeypatch fetch_articles to not hit network
+        async def mock_fetch_articles(self, url):
+            return []
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles,
+        )
+
+        # Create test data
+        now = datetime.utcnow()
+        async with clean_database.session() as session:
+            # Create category
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],
+            )
+            session.add(category)
+            await session.flush()
+
+            # Source A: due (last_fetched_at NULL)
+            source_a = Source(
+                category_id=category.id,
+                name="Source A (due, never fetched)",
+                url="https://example.com/a",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_a)
+
+            # Source B: due (last_fetched_at = now - 2*interval)
+            source_b = Source(
+                category_id=category.id,
+                name="Source B (due, old)",
+                url="https://example.com/b",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=now - timedelta(minutes=120),
+            )
+            session.add(source_b)
+
+            # Source C: not due (last_fetched_at = now - interval/2)
+            source_c = Source(
+                category_id=category.id,
+                name="Source C (not due)",
+                url="https://example.com/c",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=now - timedelta(minutes=30),
+            )
+            session.add(source_c)
+
+            # Source D: disabled (even if old)
+            source_d = Source(
+                category_id=category.id,
+                name="Source D (disabled)",
+                url="https://example.com/d",
+                source_type=SourceType.WEBSITE,
+                enabled=False,
+                fetch_interval_minutes=60,
+                last_fetched_at=now - timedelta(minutes=120),
+            )
+            session.add(source_d)
+
+            await session.commit()
+
+            # Store IDs for verification
+            source_a_id = source_a.id
+            source_b_id = source_b.id
+            source_c_id = source_c.id
+            source_d_id = source_d.id
+
+        # Run fetch_due_sources
+        manager = FetcherManager()
+        stats = await manager.fetch_due_sources(max_sources=10)
+
+        # Verify stats
+        assert stats.sources_checked == 2, "Should claim 2 due sources (A and B)"
+        assert stats.sources_fetched == 2, "Both fetches should succeed"
+        assert stats.articles_found == 0, "No articles (mocked to return [])"
+
+        # Verify database state
+        async with clean_database.session() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(select(Source))
+            sources = {s.id: s for s in result.scalars().all()}
+
+            # Source A and B should have updated last_fetched_at
+            assert sources[source_a_id].last_fetched_at is not None
+            assert sources[source_a_id].last_fetched_at > now
+            assert sources[source_b_id].last_fetched_at is not None
+            assert sources[source_b_id].last_fetched_at > now
+
+            # Source C and D should have unchanged last_fetched_at
+            assert sources[source_c_id].last_fetched_at == now - timedelta(minutes=30)
+            assert sources[source_d_id].last_fetched_at == now - timedelta(minutes=120)
+
+    @pytest.mark.asyncio
+    async def test_max_sources_limit(self, clean_database, monkeypatch):
+        """
+        Test that max_sources applies to due sources.
+
+        Creates 3 due sources, fetches with max_sources=2.
+        """
+        # Monkeypatch get_db
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.manager.get_db", mock_get_db
+        )
+
+        # Monkeypatch fetch_articles
+        async def mock_fetch_articles(self, url):
+            return []
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles,
+        )
+
+        # Create test data
+        async with clean_database.session() as session:
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],
+            )
+            session.add(category)
+            await session.flush()
+
+            # Create 3 due sources
+            for i in range(3):
+                source = Source(
+                    category_id=category.id,
+                    name=f"Source {i}",
+                    url=f"https://example.com/{i}",
+                    source_type=SourceType.WEBSITE,
+                    enabled=True,
+                    fetch_interval_minutes=60,
+                    last_fetched_at=None,
+                )
+                session.add(source)
+
+            await session.commit()
+
+        # Run fetch_due_sources with max_sources=2
+        manager = FetcherManager()
+        stats = await manager.fetch_due_sources(max_sources=2)
+
+        # Verify stats
+        assert stats.sources_checked == 2, "Should claim exactly 2 sources"
+        assert stats.sources_fetched == 2, "Both fetches should succeed"
+
+        # Verify exactly 2 sources have updated last_fetched_at
+        async with clean_database.session() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(select(Source))
+            sources = list(result.scalars().all())
+
+            updated_count = sum(1 for s in sources if s.last_fetched_at is not None)
+            assert updated_count == 2, "Exactly 2 sources should be updated"
+
+    @pytest.mark.asyncio
+    async def test_multi_worker_safety(self, clean_database, monkeypatch):
+        """
+        Test that concurrent workers don't process the same source.
+
+        Creates 2 due sources, runs 2 workers concurrently with max_sources=1 each.
+        Both sources should end up processed (not the same one twice).
+        """
+        # Monkeypatch get_db
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.manager.get_db", mock_get_db
+        )
+
+        # Monkeypatch fetch_articles with delay to hold lock
+        async def mock_fetch_articles_with_delay(self, url):
+            await asyncio.sleep(0.2)  # Hold lock for a bit
+            return []
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles_with_delay,
+        )
+
+        # Create test data
+        async with clean_database.session() as session:
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],
+            )
+            session.add(category)
+            await session.flush()
+
+            # Create 2 due sources
+            source_1 = Source(
+                category_id=category.id,
+                name="Source 1",
+                url="https://example.com/1",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_1)
+
+            source_2 = Source(
+                category_id=category.id,
+                name="Source 2",
+                url="https://example.com/2",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_2)
+
+            await session.commit()
+
+        # Run two workers concurrently
+        manager1 = FetcherManager()
+        manager2 = FetcherManager()
+
+        results = await asyncio.gather(
+            manager1.fetch_due_sources(max_sources=1),
+            manager2.fetch_due_sources(max_sources=1),
+        )
+
+        stats1, stats2 = results
+
+        # Both workers should process exactly one source
+        assert stats1.sources_checked == 1, "Worker 1 should claim 1 source"
+        assert stats2.sources_checked == 1, "Worker 2 should claim 1 source"
+        assert stats1.sources_fetched == 1, "Worker 1 fetch should succeed"
+        assert stats2.sources_fetched == 1, "Worker 2 fetch should succeed"
+
+        # Verify both sources have been updated (not the same one twice)
+        async with clean_database.session() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(select(Source))
+            sources = list(result.scalars().all())
+
+            updated_count = sum(1 for s in sources if s.last_fetched_at is not None)
+            assert (
+                updated_count == 2
+            ), "Both sources should be updated (one by each worker)"
+
+    @pytest.mark.asyncio
+    async def test_error_handling_releases_lock(self, clean_database, monkeypatch):
+        """
+        Test that errors during fetch release the lock so the loop can continue.
+
+        Creates 2 due sources, first one raises exception, second should still process.
+        """
+        # Monkeypatch get_db
+        async def mock_get_db():
+            return clean_database
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.manager.get_db", mock_get_db
+        )
+
+        # Track which sources were attempted
+        attempted_urls = []
+
+        # Monkeypatch fetch_articles to fail on first, succeed on second
+        async def mock_fetch_articles_with_error(self, url):
+            attempted_urls.append(url)
+            if url == "https://example.com/fail":
+                raise Exception("Network error")
+            return []
+
+        monkeypatch.setattr(
+            "src.core.primitives.fetchers.website.WebsiteFetcher.fetch_articles",
+            mock_fetch_articles_with_error,
+        )
+
+        # Create test data
+        async with clean_database.session() as session:
+            category = Category(
+                name="Test Category",
+                digest_section="test",
+                keywords=[],
+            )
+            session.add(category)
+            await session.flush()
+
+            # Source 1: will fail (alphabetically first so fetched first)
+            source_1 = Source(
+                category_id=category.id,
+                name="AAAA Fail Source",
+                url="https://example.com/fail",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_1)
+
+            # Source 2: will succeed
+            source_2 = Source(
+                category_id=category.id,
+                name="BBBB Success Source",
+                url="https://example.com/success",
+                source_type=SourceType.WEBSITE,
+                enabled=True,
+                fetch_interval_minutes=60,
+                last_fetched_at=None,
+            )
+            session.add(source_2)
+
+            await session.commit()
+            source_1_id = source_1.id
+            source_2_id = source_2.id
+
+        # Run fetch_due_sources
+        manager = FetcherManager()
+        stats = await manager.fetch_due_sources(max_sources=10)
+
+        # Verify stats
+        assert stats.sources_checked == 2, "Should attempt both sources"
+        assert stats.sources_fetched == 1, "Only one should succeed"
+        assert len(stats.errors) == 1, "One error should be recorded"
+
+        # Verify both URLs were attempted
+        assert len(attempted_urls) == 2, "Both sources should be attempted"
+
+        # Verify only the successful source has updated last_fetched_at
+        async with clean_database.session() as session:
+            from sqlalchemy import select
+
+            result = await session.execute(select(Source))
+            sources = {s.id: s for s in result.scalars().all()}
+
+            assert (
+                sources[source_1_id].last_fetched_at is None
+            ), "Failed source should not update"
+            assert (
+                sources[source_2_id].last_fetched_at is not None
+            ), "Successful source should update"
