@@ -7,11 +7,11 @@ This ensures we can swap providers without changing agent code.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     """Message roles in conversation."""
     SYSTEM = "system"
     USER = "user"

@@ -8,7 +8,7 @@ fetch content from a URL and return it in a structured way.
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 import httpx
@@ -16,7 +16,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
-class ContentType(str, Enum):
+class ContentType(StrEnum):
     """Detected content type."""
     HTML = "html"
     JSON = "json"
