@@ -1,0 +1,59 @@
+# Systemd service file for Personal Assistant Security Digest Worker
+#
+# Installation:
+# 1. Copy this file to /etc/systemd/system/pa-worker.service
+# 2. Edit paths and environment variables as needed
+# 3. Run: sudo systemctl daemon-reload
+# 4. Run: sudo systemctl enable pa-worker
+# 5. Run: sudo systemctl start pa-worker
+#
+# Commands:
+# - sudo systemctl status pa-worker    # Check status
+# - sudo systemctl restart pa-worker   # Restart
+# - sudo journalctl -u pa-worker -f    # Follow logs
+
+[Unit]
+Description=Personal Assistant Security Digest Worker
+Documentation=https://github.com/tolstuun/personal_assistant
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=assistant
+Group=assistant
+
+# Working directory (adjust path as needed)
+WorkingDirectory=/opt/personal-assistant
+
+# Python virtual environment
+Environment="PATH=/opt/personal-assistant/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Application environment
+Environment="PYTHONUNBUFFERED=1"
+# Uncomment and set these to override database settings from config
+# Environment="POSTGRES_HOST=localhost"
+# Environment="POSTGRES_PORT=5432"
+
+# The worker command
+ExecStart=/opt/personal-assistant/venv/bin/python -m src.workers.security_digest_worker
+
+# Restart policy
+Restart=always
+RestartSec=10
+
+# Process limits
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pa-worker
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+# Allow read access to config
+ReadOnlyPaths=/
+ReadWritePaths=/opt/personal-assistant/logs
+
+[Install]
+WantedBy=multi-user.target

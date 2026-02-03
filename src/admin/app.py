@@ -14,6 +14,7 @@ from src.admin.routes import (
     auth_router,
     categories_router,
     dashboard_router,
+    settings_router,
     sources_router,
 )
 
@@ -62,6 +63,7 @@ def create_admin_app() -> FastAPI:
     admin_app.include_router(dashboard_router)
     admin_app.include_router(categories_router)
     admin_app.include_router(sources_router)
+    admin_app.include_router(settings_router)
 
     return admin_app
 

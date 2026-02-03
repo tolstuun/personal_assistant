@@ -20,6 +20,7 @@ from typing import NoReturn
 
 from src.core.config.loader import get_config
 from src.core.primitives.fetchers.manager import FetcherManager
+from src.core.services.settings import SettingsService
 from src.core.storage.postgres import get_db
 
 logger = logging.getLogger(__name__)
@@ -110,17 +111,34 @@ async def run_worker(config: WorkerConfig) -> None:
     Continuously fetches content from due sources with configurable interval and jitter.
     Handles errors gracefully without crashing the worker.
 
+    The fetch interval is read from the database at the start of each cycle,
+    allowing dynamic configuration changes without worker restart.
+
     Args:
         config: Worker configuration.
     """
     logger.info(
-        f"Starting worker with interval={config.interval_seconds}s, "
+        f"Starting worker with default interval={config.interval_seconds}s, "
         f"jitter={config.jitter_seconds}s, max_sources={config.max_sources}"
     )
 
     manager = FetcherManager()
+    settings_service = SettingsService()
 
     while not shutdown_event.is_set():
+        # Read interval from database (allows dynamic changes)
+        try:
+            db_interval_minutes = await settings_service.get("fetch_interval_minutes")
+            interval_seconds = db_interval_minutes * 60
+            logger.debug(f"Using fetch interval from database: {db_interval_minutes} minutes")
+        except Exception as e:
+            # Fall back to config file / env var if database read fails
+            interval_seconds = config.interval_seconds
+            logger.warning(
+                f"Could not read fetch_interval_minutes from database: {e}. "
+                f"Using config value: {config.interval_seconds}s"
+            )
+
         try:
             logger.info("Starting fetch cycle...")
             stats = await manager.fetch_due_sources(max_sources=config.max_sources)
@@ -145,11 +163,10 @@ async def run_worker(config: WorkerConfig) -> None:
 
         # Calculate sleep time with jitter to avoid thundering herd
         jitter = random.uniform(0, config.jitter_seconds)
-        sleep_time = config.interval_seconds + jitter
+        sleep_time = interval_seconds + jitter
 
         logger.info(
-            f"Sleeping for {sleep_time:.1f}s "
-            f"(base={config.interval_seconds}s + jitter={jitter:.1f}s)"
+            f"Sleeping for {sleep_time:.1f}s (base={interval_seconds}s + jitter={jitter:.1f}s)"
         )
 
         # Sleep in small chunks to respond quickly to shutdown signal

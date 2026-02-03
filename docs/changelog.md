@@ -2,6 +2,56 @@
 
 ## 2026-02-02
 
+### Admin Settings Page (New)
+Added a Settings page to the admin UI for managing system configuration:
+
+- **Settings Page** (`/admin/settings`) — View and edit system settings through the web UI. No more editing config files for common settings.
+
+- **Database-Stored Settings** — Settings are stored in a new `settings` table. Changes take effect without restarting services.
+
+- **Configurable Settings:**
+  - **Fetch Interval** — How often to fetch new content (default: 60 minutes)
+  - **Fetch Worker Count** — Number of parallel workers to run (default: 3)
+  - **Digest Time** — When to generate the daily digest (default: 08:00)
+  - **Telegram Notifications** — Enable/disable notifications (default: enabled)
+  - **Digest Sections** — Which sections to include (default: security_news, product_news, market)
+
+- **Worker Integration** — The background worker now reads `fetch_interval_minutes` from the database. Change the interval in the admin UI and the worker picks it up on the next cycle.
+
+- **Multi-Worker Support** — Run multiple parallel workers for faster content ingestion. Workers use SKIP LOCKED to avoid duplicate work.
+
+**How to use:**
+1. Visit `/admin/settings` (requires admin login)
+2. Edit any setting and click "Save"
+3. Changes are applied immediately (worker reads on next cycle)
+
+**How to reset:** Click "Reset" next to any customized setting to restore the default value.
+
+### Multi-Worker Deployment (New)
+Added support for running multiple parallel fetcher workers:
+
+- **Systemd Template Unit** (`deploy/pa-fetcher@.service`) — Supports running N worker instances using systemd templates.
+
+- **Worker Manager Script** (`pa-worker-manager`) — Reads `fetch_worker_count` from database and manages worker instances.
+
+**How to run multiple workers:**
+```bash
+# Using the manager script (recommended)
+pa-worker-manager start   # Starts workers based on fetch_worker_count setting
+pa-worker-manager stop    # Stops all workers
+pa-worker-manager reload  # Adjusts count to match setting
+pa-worker-manager status  # Shows running workers
+
+# Manual control with systemd
+sudo systemctl start pa-fetcher@{1..3}   # Start workers 1, 2, 3
+sudo systemctl stop pa-fetcher@2         # Stop worker 2
+sudo journalctl -u 'pa-fetcher@*' -f     # Follow all worker logs
+```
+
+**Why it's safe:** FetcherManager uses `SELECT ... FOR UPDATE SKIP LOCKED` so workers automatically skip sources being processed by other workers.
+
+For technical details, see: `docs/decisions/010-admin-settings.md`
+
 ### Article Persistence Scalability (Improvement)
 Replaced per-article duplicate checking with bulk Postgres UPSERT for better performance and concurrency safety:
 

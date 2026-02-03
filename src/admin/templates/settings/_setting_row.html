@@ -1,0 +1,69 @@
+<tr id="setting-{{ key }}">
+    <td class="px-6 py-4">
+        <div class="text-sm font-medium text-gray-900">{{ key | replace("_", " ") | title }}</div>
+        <div class="text-sm text-gray-500">{{ setting.description }}</div>
+    </td>
+    <td class="px-6 py-4">
+        <form hx-post="/admin/settings/{{ key }}"
+              hx-target="#setting-{{ key }}"
+              hx-swap="outerHTML"
+              class="flex items-center space-x-2">
+
+            {% if setting.type == "number" %}
+            <input type="number" name="value" value="{{ setting.value }}" min="1"
+                   class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            {% if "interval" in key or "minutes" in key %}
+            <span class="text-sm text-gray-500">minutes</span>
+            {% elif "count" in key or "workers" in key %}
+            <span class="text-sm text-gray-500">workers</span>
+            {% endif %}
+
+            {% elif setting.type == "time" %}
+            <input type="time" name="value" value="{{ setting.value }}"
+                   class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+
+            {% elif setting.type == "boolean" %}
+            <select name="value_bool"
+                    class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="true" {% if setting.value %}selected{% endif %}>Enabled</option>
+                <option value="false" {% if not setting.value %}selected{% endif %}>Disabled</option>
+            </select>
+
+            {% elif setting.type == "multiselect" %}
+            <div class="flex flex-wrap gap-2">
+                {% for option in setting.options %}
+                <label class="inline-flex items-center">
+                    <input type="checkbox" name="value_list" value="{{ option }}"
+                           {% if option in setting.value %}checked{% endif %}
+                           class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    <span class="ml-1 text-sm text-gray-700">{{ option | replace("_", " ") | title }}</span>
+                </label>
+                {% endfor %}
+            </div>
+
+            {% else %}
+            <input type="text" name="value" value="{{ setting.value }}"
+                   class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            {% endif %}
+
+            <button type="submit"
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                Save
+            </button>
+        </form>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        {% if not setting.is_default %}
+        <span class="text-xs text-gray-400 mr-2">(custom)</span>
+        <button hx-delete="/admin/settings/{{ key }}"
+                hx-target="#setting-{{ key }}"
+                hx-swap="outerHTML"
+                hx-confirm="Reset '{{ key | replace('_', ' ') | title }}' to default value?"
+                class="text-red-600 hover:text-red-900">
+            Reset
+        </button>
+        {% else %}
+        <span class="text-xs text-gray-400">(default)</span>
+        {% endif %}
+    </td>
+</tr>
