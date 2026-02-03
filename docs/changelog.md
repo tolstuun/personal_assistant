@@ -1,5 +1,31 @@
 # Changelog
 
+## 2026-02-03
+
+### LLM Summarizer Service (New)
+Added a service for generating AI summaries of fetched articles:
+
+- **SummarizerService** (`src/core/services/summarizer.py`) — Generates 2-3 sentence summaries using the configured LLM provider. Falls back to article title if summarization fails (for any reason).
+
+- **Database Settings** — Provider and model tier are configurable via admin UI:
+  - `summarizer_provider` — Which LLM to use (anthropic, openai, google, ollama). Default: ollama
+  - `summarizer_tier` — Which model tier (fast, smart, smartest). Default: fast
+
+- **Reliability First** — The service never crashes. If the LLM call fails, times out, or returns invalid JSON, it returns the article title as the summary and logs the error.
+
+**How to test:**
+```bash
+# Unit tests
+pytest tests/core/services/test_summarizer.py -v
+
+# Manual test with a real article
+python -m src.core.services.summarizer --test <article-uuid>
+```
+
+**How to configure:** Visit `/admin/settings` and edit `summarizer_provider` or `summarizer_tier`.
+
+For technical details, see: `docs/decisions/011-llm-summarizer.md`
+
 ## 2026-02-02
 
 ### Admin Settings Page (New)
