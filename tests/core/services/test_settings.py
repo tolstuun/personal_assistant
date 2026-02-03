@@ -21,6 +21,8 @@ class TestSettingsServiceDefaults:
         assert "digest_time" in service.DEFAULTS
         assert "telegram_notifications" in service.DEFAULTS
         assert "digest_sections" in service.DEFAULTS
+        assert "summarizer_provider" in service.DEFAULTS
+        assert "summarizer_tier" in service.DEFAULTS
 
     def test_default_values(self) -> None:
         """Default values are correct."""
@@ -117,6 +119,39 @@ class TestSettingsServiceValidation:
 
         with pytest.raises(ValueError):
             service._validate_value("digest_sections", ["invalid_section"])
+
+    def test_validate_summarizer_provider(self) -> None:
+        """summarizer_provider must be a valid provider name."""
+        service = SettingsService()
+
+        # Valid
+        service._validate_value("summarizer_provider", "anthropic")
+        service._validate_value("summarizer_provider", "openai")
+        service._validate_value("summarizer_provider", "google")
+        service._validate_value("summarizer_provider", "ollama")
+
+        # Invalid
+        with pytest.raises(ValueError, match="Invalid provider"):
+            service._validate_value("summarizer_provider", "invalid")
+
+        with pytest.raises(ValueError):
+            service._validate_value("summarizer_provider", 123)
+
+    def test_validate_summarizer_tier(self) -> None:
+        """summarizer_tier must be a valid tier name."""
+        service = SettingsService()
+
+        # Valid
+        service._validate_value("summarizer_tier", "fast")
+        service._validate_value("summarizer_tier", "smart")
+        service._validate_value("summarizer_tier", "smartest")
+
+        # Invalid
+        with pytest.raises(ValueError, match="Invalid tier"):
+            service._validate_value("summarizer_tier", "invalid")
+
+        with pytest.raises(ValueError):
+            service._validate_value("summarizer_tier", 123)
 
 
 class TestSettingsServiceIntegration:
