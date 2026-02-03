@@ -30,6 +30,7 @@ class SettingsService:
     # Default values for all settings
     DEFAULTS: dict[str, Any] = {
         "fetch_interval_minutes": 60,
+        "fetch_worker_count": 3,
         "digest_time": "08:00",
         "telegram_notifications": True,
         "digest_sections": ["security_news", "product_news", "market"],
@@ -38,6 +39,7 @@ class SettingsService:
     # Setting descriptions for UI
     DESCRIPTIONS: dict[str, str] = {
         "fetch_interval_minutes": "How often to fetch new content (in minutes)",
+        "fetch_worker_count": "Number of parallel fetch workers to run",
         "digest_time": "When to generate the daily digest (24-hour format)",
         "telegram_notifications": "Send notifications via Telegram",
         "digest_sections": "Which sections to include in the digest",
@@ -46,6 +48,7 @@ class SettingsService:
     # Setting types for UI rendering
     TYPES: dict[str, str] = {
         "fetch_interval_minutes": "number",
+        "fetch_worker_count": "number",
         "digest_time": "time",
         "telegram_notifications": "boolean",
         "digest_sections": "multiselect",

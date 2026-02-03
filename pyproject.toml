@@ -63,6 +63,7 @@ dev = [
 
 [project.scripts]
 pa-worker = "src.workers.security_digest_worker:main"
+pa-worker-manager = "src.workers.worker_manager:main"
 
 [build-system]
 requires = ["hatchling"]

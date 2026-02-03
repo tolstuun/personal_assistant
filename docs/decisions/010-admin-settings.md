@@ -44,6 +44,7 @@ CREATE TABLE settings (
 | Key | Default Value | Description |
 |-----|---------------|-------------|
 | `fetch_interval_minutes` | `60` | How often to run the fetcher |
+| `fetch_worker_count` | `3` | Number of parallel worker instances |
 | `digest_time` | `"08:00"` | When to generate daily digest (24h format) |
 | `telegram_notifications` | `true` | Whether to send Telegram notifications |
 | `digest_sections` | `["security_news", "product_news", "market"]` | Which sections to include |
@@ -62,6 +63,36 @@ Modify the background worker to:
 2. Re-read settings periodically (every 5 minutes) to pick up changes
 3. Fall back to environment variable / config file if database unavailable
 
+### 4. Multi-Worker Support
+
+The system supports running multiple parallel workers for faster content ingestion:
+
+**Why multiple workers:**
+- Faster processing of many sources
+- Better utilization of network and database capacity
+- Resilience: if one worker crashes, others continue
+
+**How it works:**
+- `fetch_worker_count` setting controls target number of workers
+- Each worker uses `SELECT ... FOR UPDATE SKIP LOCKED` to claim sources
+- No duplicate work: workers automatically skip sources being processed
+- Systemd template unit (`pa-fetcher@.service`) supports N instances
+
+**Worker manager script:**
+```bash
+pa-worker-manager start   # Start workers based on fetch_worker_count
+pa-worker-manager stop    # Stop all workers
+pa-worker-manager reload  # Adjust count to match setting
+pa-worker-manager status  # Show running workers
+```
+
+**Manual control:**
+```bash
+systemctl start pa-fetcher@{1..3}   # Start workers 1, 2, 3
+systemctl stop pa-fetcher@2         # Stop worker 2
+journalctl -u 'pa-fetcher@*' -f     # Follow all worker logs
+```
+
 ### Architecture
 
 ```
@@ -76,7 +107,12 @@ src/admin/templates/settings/
 └── _setting_row.html     # Individual setting row
 
 src/workers/
-└── security_digest_worker.py  # Updated to read from DB
+├── security_digest_worker.py  # Individual worker process
+└── worker_manager.py          # Multi-worker orchestration
+
+deploy/
+├── pa-fetcher@.service   # Systemd template unit
+└── pa-fetcher.target     # Target for all workers
 ```
 
 ### Model Design

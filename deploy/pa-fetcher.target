@@ -1,0 +1,20 @@
+# Systemd target for grouping all fetcher workers
+#
+# This target allows starting/stopping all fetcher workers at once.
+#
+# Installation:
+# 1. Copy this file to /etc/systemd/system/pa-fetcher.target
+# 2. Run: sudo systemctl daemon-reload
+#
+# Usage:
+# - sudo systemctl start pa-fetcher.target   # Start all enabled workers
+# - sudo systemctl stop pa-fetcher.target    # Stop all workers
+# - sudo systemctl status pa-fetcher.target  # Check target status
+
+[Unit]
+Description=Personal Assistant Fetcher Workers
+Documentation=https://github.com/tolstuun/personal_assistant
+After=network.target postgresql.service
+
+[Install]
+WantedBy=multi-user.target

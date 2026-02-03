@@ -17,6 +17,7 @@ class TestSettingsServiceDefaults:
         service = SettingsService()
 
         assert "fetch_interval_minutes" in service.DEFAULTS
+        assert "fetch_worker_count" in service.DEFAULTS
         assert "digest_time" in service.DEFAULTS
         assert "telegram_notifications" in service.DEFAULTS
         assert "digest_sections" in service.DEFAULTS
@@ -26,6 +27,7 @@ class TestSettingsServiceDefaults:
         service = SettingsService()
 
         assert service.DEFAULTS["fetch_interval_minutes"] == 60
+        assert service.DEFAULTS["fetch_worker_count"] == 3
         assert service.DEFAULTS["digest_time"] == "08:00"
         assert service.DEFAULTS["telegram_notifications"] is True
         assert "security_news" in service.DEFAULTS["digest_sections"]

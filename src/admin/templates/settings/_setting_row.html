@@ -12,7 +12,11 @@
             {% if setting.type == "number" %}
             <input type="number" name="value" value="{{ setting.value }}" min="1"
                    class="w-24 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            {% if "interval" in key or "minutes" in key %}
             <span class="text-sm text-gray-500">minutes</span>
+            {% elif "count" in key or "workers" in key %}
+            <span class="text-sm text-gray-500">workers</span>
+            {% endif %}
 
             {% elif setting.type == "time" %}
             <input type="time" name="value" value="{{ setting.value }}"
