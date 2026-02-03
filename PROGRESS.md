@@ -119,7 +119,8 @@ Tracking Personal Assistant development progress.
 - [x] Admin UI for managing sources
 - [x] Content fetcher primitive (website fetcher)
 - [x] Background worker for content ingestion
-- [ ] LLM summarization and scoring
+- [x] LLM summarization service (summarizer.py)
+- [ ] Relevance scoring
 - [ ] Digest generation (HTML output)
 - [ ] Manual CLI execution
 

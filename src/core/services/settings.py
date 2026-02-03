@@ -27,6 +27,10 @@ class SettingsService:
     back to defaults when not set.
     """
 
+    # Valid values for constrained settings
+    VALID_PROVIDERS = ["anthropic", "openai", "google", "ollama"]
+    VALID_TIERS = ["fast", "smart", "smartest"]
+
     # Default values for all settings
     DEFAULTS: dict[str, Any] = {
         "fetch_interval_minutes": 60,
@@ -34,6 +38,8 @@ class SettingsService:
         "digest_time": "08:00",
         "telegram_notifications": True,
         "digest_sections": ["security_news", "product_news", "market"],
+        "summarizer_provider": "ollama",
+        "summarizer_tier": "fast",
     }
 
     # Setting descriptions for UI
@@ -43,6 +49,8 @@ class SettingsService:
         "digest_time": "When to generate the daily digest (24-hour format)",
         "telegram_notifications": "Send notifications via Telegram",
         "digest_sections": "Which sections to include in the digest",
+        "summarizer_provider": "LLM provider for summarization (anthropic, openai, google, ollama)",
+        "summarizer_tier": "LLM model tier for summarization (fast, smart, smartest)",
     }
 
     # Setting types for UI rendering
@@ -52,6 +60,8 @@ class SettingsService:
         "digest_time": "time",
         "telegram_notifications": "boolean",
         "digest_sections": "multiselect",
+        "summarizer_provider": "text",
+        "summarizer_tier": "text",
     }
 
     # Available options for multiselect settings
@@ -237,6 +247,23 @@ class SettingsService:
             for item in value:
                 if item not in valid_options:
                     raise ValueError(f"Invalid option for {key}: {item}")
+
+        elif setting_type == "text":
+            if not isinstance(value, str):
+                raise ValueError(f"{key} must be a string")
+            # Validate constrained text settings
+            if key == "summarizer_provider":
+                if value not in self.VALID_PROVIDERS:
+                    raise ValueError(
+                        f"Invalid provider '{value}'. "
+                        f"Must be one of: {', '.join(self.VALID_PROVIDERS)}"
+                    )
+            elif key == "summarizer_tier":
+                if value not in self.VALID_TIERS:
+                    raise ValueError(
+                        f"Invalid tier '{value}'. "
+                        f"Must be one of: {', '.join(self.VALID_TIERS)}"
+                    )
 
 
 # Singleton instance for convenience
