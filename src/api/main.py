@@ -7,8 +7,10 @@ Runs with HTTPS using Let's Encrypt certificates.
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
+from fastapi.staticfiles import StaticFiles
 from telegram import Update
 
 from interfaces.telegram_bot.bot import BotConfig, TelegramBot
@@ -81,6 +83,11 @@ app = FastAPI(
 
 # Mount admin UI at /admin
 app.mount("/admin", admin_app)
+
+# Mount digest HTML files at /digests
+_digests_dir = Path("data/digests")
+_digests_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/digests", StaticFiles(directory=str(_digests_dir)), name="digests")
 
 
 @app.get("/")
