@@ -131,7 +131,7 @@ class TestSettingsServiceValidation:
         service._validate_value("summarizer_provider", "ollama")
 
         # Invalid
-        with pytest.raises(ValueError, match="Invalid provider"):
+        with pytest.raises(ValueError, match="Invalid value"):
             service._validate_value("summarizer_provider", "invalid")
 
         with pytest.raises(ValueError):
@@ -147,11 +147,20 @@ class TestSettingsServiceValidation:
         service._validate_value("summarizer_tier", "smartest")
 
         # Invalid
-        with pytest.raises(ValueError, match="Invalid tier"):
+        with pytest.raises(ValueError, match="Invalid value"):
             service._validate_value("summarizer_tier", "invalid")
 
         with pytest.raises(ValueError):
             service._validate_value("summarizer_tier", 123)
+
+    def test_validate_select_type(self) -> None:
+        """Select settings are validated as select type, not text."""
+        service = SettingsService()
+
+        assert service.TYPES["summarizer_provider"] == "select"
+        assert service.TYPES["summarizer_tier"] == "select"
+        assert "summarizer_provider" in service.OPTIONS
+        assert "summarizer_tier" in service.OPTIONS
 
 
 class TestSettingsServiceIntegration:

@@ -60,13 +60,15 @@ class SettingsService:
         "digest_time": "time",
         "telegram_notifications": "boolean",
         "digest_sections": "multiselect",
-        "summarizer_provider": "text",
-        "summarizer_tier": "text",
+        "summarizer_provider": "select",
+        "summarizer_tier": "select",
     }
 
-    # Available options for multiselect settings
+    # Available options for select and multiselect settings
     OPTIONS: dict[str, list[str]] = {
         "digest_sections": ["security_news", "product_news", "market", "research"],
+        "summarizer_provider": VALID_PROVIDERS,
+        "summarizer_tier": VALID_TIERS,
     }
 
     async def get(self, key: str) -> Any:
@@ -248,22 +250,19 @@ class SettingsService:
                 if item not in valid_options:
                     raise ValueError(f"Invalid option for {key}: {item}")
 
+        elif setting_type == "select":
+            if not isinstance(value, str):
+                raise ValueError(f"{key} must be a string")
+            valid_options = self.OPTIONS.get(key, [])
+            if valid_options and value not in valid_options:
+                raise ValueError(
+                    f"Invalid value '{value}' for {key}. "
+                    f"Must be one of: {', '.join(valid_options)}"
+                )
+
         elif setting_type == "text":
             if not isinstance(value, str):
                 raise ValueError(f"{key} must be a string")
-            # Validate constrained text settings
-            if key == "summarizer_provider":
-                if value not in self.VALID_PROVIDERS:
-                    raise ValueError(
-                        f"Invalid provider '{value}'. "
-                        f"Must be one of: {', '.join(self.VALID_PROVIDERS)}"
-                    )
-            elif key == "summarizer_tier":
-                if value not in self.VALID_TIERS:
-                    raise ValueError(
-                        f"Invalid tier '{value}'. "
-                        f"Must be one of: {', '.join(self.VALID_TIERS)}"
-                    )
 
 
 # Singleton instance for convenience
