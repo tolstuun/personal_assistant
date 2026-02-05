@@ -8,6 +8,14 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-05: Settings Dropdowns for Summarizer
+
+**Done:**
+- [x] Changed `summarizer_provider` and `summarizer_tier` from text inputs to select dropdowns
+- [x] Added reusable `select` field type to the settings system
+- [x] Updated settings service, template, and tests
+- [x] CI green
+
 ### 2026-01-30: Background Worker
 
 **Done:**

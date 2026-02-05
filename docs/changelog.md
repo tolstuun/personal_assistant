@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-02-05
+
+### Settings Dropdowns for Summarizer (Improvement)
+Changed `summarizer_provider` and `summarizer_tier` from free-text inputs to dropdown menus in the admin settings page:
+
+- **Summarizer Provider** — Now a dropdown with options: ollama, anthropic, openai, google
+- **Summarizer Tier** — Now a dropdown with options: fast, smart, smartest
+
+This prevents typos and makes it clear which values are valid. Also added a reusable `select` field type to the settings system, so future settings with fixed options can use dropdowns too.
+
+**No action needed** — existing values are unchanged. The dropdowns just make editing easier.
+
 ## 2026-02-03
 
 ### LLM Summarizer Service (New)
