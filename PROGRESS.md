@@ -8,6 +8,27 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-05: Digest Generator
+
+**Done:**
+- [x] Created decision doc: docs/decisions/012-digest-generator.md
+- [x] src/core/services/digest.py — digest generator service
+- [x] src/core/services/templates/digest.html — standalone HTML template
+- [x] src/admin/routes/digests.py — admin route for manual generation
+- [x] "Generate Digest Now" button on admin dashboard
+- [x] Static file serving for generated digests at /digests/
+- [x] CLI: python -m src.core.services.digest --generate
+- [x] tests/core/services/test_digest.py — 12 unit tests
+- [x] Updated docs/changelog.md
+
+**Features:**
+- Collects unprocessed articles (digest_id IS NULL)
+- Summarizes articles using configured LLM provider/tier
+- Groups by digest_section (security_news, product_news, market)
+- Generates clean, mobile-friendly standalone HTML
+- Creates Digest record with status=READY
+- Respects digest_sections setting for section filtering
+
 ### 2026-02-05: Settings Dropdowns for Summarizer
 
 **Done:**
@@ -129,8 +150,8 @@ Tracking Personal Assistant development progress.
 - [x] Background worker for content ingestion
 - [x] LLM summarization service (summarizer.py)
 - [ ] Relevance scoring
-- [ ] Digest generation (HTML output)
-- [ ] Manual CLI execution
+- [x] Digest generation (HTML output)
+- [x] Manual CLI execution
 
 ### Phase 3: Orchestrator + API
 - [ ] FastAPI server

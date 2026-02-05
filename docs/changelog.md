@@ -2,6 +2,29 @@
 
 ## 2026-02-05
 
+### Digest Generator (New)
+Added a service that generates daily digests from fetched articles:
+
+- **DigestService** (`src/core/services/digest.py`) — Collects unprocessed articles (those not yet in a digest), summarizes any that lack summaries using the configured LLM, groups them by section, and generates a standalone HTML page.
+
+- **HTML Output** — Clean, mobile-friendly HTML digest saved to `data/digests/`. Each digest has sections (Security News, Product News, Market) with article titles linked to original URLs and AI-generated summaries.
+
+- **Admin UI** — "Generate Digest Now" button on the dashboard for manual testing. Shows success/failure result and links to the generated digest.
+
+- **CLI** — `python -m src.core.services.digest --generate` for command-line generation.
+
+**How to use:**
+1. Make sure articles have been fetched (the background worker does this automatically)
+2. Click "Generate Digest Now" on the dashboard, or run the CLI command
+3. View the generated HTML at `/digests/digest-YYYY-MM-DD.html`
+
+**How to test:**
+```bash
+pytest tests/core/services/test_digest.py -v
+```
+
+For technical details, see: `docs/decisions/012-digest-generator.md`
+
 ### Settings Dropdowns for Summarizer (Improvement)
 Changed `summarizer_provider` and `summarizer_tier` from free-text inputs to dropdown menus in the admin settings page:
 
