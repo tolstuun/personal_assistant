@@ -17,6 +17,7 @@ from jinja2 import Environment, FileSystemLoader
 from sqlalchemy import select, update
 
 from src.core.models.security_digest import Article, Digest, DigestStatus
+from src.core.services.notifier import TelegramNotifier
 from src.core.services.settings import SettingsService
 from src.core.services.summarizer import SummarizerService
 from src.core.storage.postgres import get_db
@@ -44,6 +45,7 @@ class DigestService:
         self,
         settings_service: SettingsService | None = None,
         summarizer_service: SummarizerService | None = None,
+        notifier: TelegramNotifier | None = None,
     ) -> None:
         """
         Initialize the digest service.
@@ -51,9 +53,11 @@ class DigestService:
         Args:
             settings_service: Optional settings service instance.
             summarizer_service: Optional summarizer service instance.
+            notifier: Optional telegram notifier instance.
         """
         self._settings = settings_service or SettingsService()
         self._summarizer = summarizer_service or SummarizerService(self._settings)
+        self._notifier = notifier
 
     async def generate(self) -> Digest:
         """
@@ -165,6 +169,25 @@ class DigestService:
             f"Digest created: {digest_id} with {len(article_ids)} articles "
             f"across {len(sections)} sections"
         )
+
+        # 9. Send Telegram notification if enabled
+        notify_enabled: bool = await self._settings.get("telegram_notifications")
+        if notify_enabled:
+            notifier = self._notifier or TelegramNotifier()
+            sent = await notifier.send_digest_notification(
+                digest=digest,
+                article_count=len(articles),
+            )
+            if sent:
+                async with db.session() as session:
+                    stmt = (
+                        update(Digest)
+                        .where(Digest.id == digest_id)
+                        .values(notified_at=utcnow_naive())
+                    )
+                    await session.execute(stmt)
+                    await session.commit()
+                digest.notified_at = utcnow_naive()
 
         return digest
 
