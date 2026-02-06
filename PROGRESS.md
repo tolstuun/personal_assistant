@@ -8,6 +8,22 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-05: Telegram Notification on Digest
+
+**Done:**
+- [x] Created decision doc: docs/decisions/013-digest-telegram-notification.md
+- [x] src/core/services/notifier.py — telegram notifier service
+- [x] Integrated notification into digest generator (digest.py)
+- [x] tests/core/services/test_notifier.py — 9 unit tests
+- [x] Updated tests/core/services/test_digest.py — 5 notification tests
+- [x] Updated docs/changelog.md
+
+**Features:**
+- Sends Telegram message after digest generation
+- Respects telegram_notifications setting
+- Updates notified_at timestamp on success
+- Best-effort — notification failures don't block digest creation
+
 ### 2026-02-05: Digest Generator
 
 **Done:**

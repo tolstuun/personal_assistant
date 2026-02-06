@@ -2,6 +2,19 @@
 
 ## 2026-02-05
 
+### Telegram Notification on Digest (New)
+When a digest is generated, the bot now sends a Telegram notification to all configured users:
+
+- **TelegramNotifier** (`src/core/services/notifier.py`) — Lightweight service for sending Telegram messages. Reads bot token and chat IDs from `config/telegram.yaml`. Never crashes — logs errors and continues.
+
+- **Automatic notification** — After a digest is created, a message is sent with the digest date, article count, and a link to view it. The `notified_at` timestamp is recorded on the Digest record.
+
+- **Configurable** — Controlled by the `telegram_notifications` setting (default: enabled). Disable via admin Settings page.
+
+**How it works:** Generate a digest (via dashboard button or CLI) and you'll get a Telegram message with a link to the digest.
+
+For technical details, see: `docs/decisions/013-digest-telegram-notification.md`
+
 ### Digest Generator (New)
 Added a service that generates daily digests from fetched articles:
 

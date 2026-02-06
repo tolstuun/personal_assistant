@@ -21,11 +21,16 @@ class MockSettingsService:
     """Mock settings service for testing."""
 
     def __init__(
-        self, sections: list[str] | None = None, provider: str = "ollama", tier: str = "fast"
+        self,
+        sections: list[str] | None = None,
+        provider: str = "ollama",
+        tier: str = "fast",
+        telegram_notifications: bool = True,
     ):
         self.sections = sections or ["security_news", "product_news", "market"]
         self.provider = provider
         self.tier = tier
+        self.telegram_notifications = telegram_notifications
 
     async def get(self, key: str):
         if key == "digest_sections":
@@ -34,6 +39,8 @@ class MockSettingsService:
             return self.provider
         if key == "summarizer_tier":
             return self.tier
+        if key == "telegram_notifications":
+            return self.telegram_notifications
         raise KeyError(f"Unknown key: {key}")
 
 
@@ -368,3 +375,123 @@ class TestDigestGeneration:
             await service.generate()
 
         assert len(mock_summarizer.calls) == 0
+
+
+class MockNotifier:
+    """Mock notifier for testing."""
+
+    def __init__(self, success: bool = True) -> None:
+        self.success = success
+        self.calls: list[dict] = []
+
+    async def send_digest_notification(self, digest, article_count: int) -> bool:
+        self.calls.append({"digest": digest, "article_count": article_count})
+        return self.success
+
+
+class TestDigestNotification:
+    """Tests for notification integration in DigestService.generate()."""
+
+    @pytest.mark.asyncio
+    async def test_generate_sends_notification_when_enabled(self, tmp_path) -> None:
+        """Notification is sent when telegram_notifications is True."""
+        articles = [_make_article()]
+        mock_db = MockDB(articles)
+        mock_notifier = MockNotifier(success=True)
+
+        with (
+            patch("src.core.services.digest.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch("src.core.services.digest.DIGESTS_DIR", tmp_path),
+        ):
+            service = DigestService(
+                settings_service=MockSettingsService(telegram_notifications=True),
+                summarizer_service=MockSummarizerService(),
+                notifier=mock_notifier,
+            )
+            await service.generate()
+
+        assert len(mock_notifier.calls) == 1
+        assert mock_notifier.calls[0]["article_count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_skips_notification_when_disabled(self, tmp_path) -> None:
+        """Notification is NOT sent when telegram_notifications is False."""
+        articles = [_make_article()]
+        mock_db = MockDB(articles)
+        mock_notifier = MockNotifier()
+
+        with (
+            patch("src.core.services.digest.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch("src.core.services.digest.DIGESTS_DIR", tmp_path),
+        ):
+            service = DigestService(
+                settings_service=MockSettingsService(telegram_notifications=False),
+                summarizer_service=MockSummarizerService(),
+                notifier=mock_notifier,
+            )
+            await service.generate()
+
+        assert len(mock_notifier.calls) == 0
+
+    @pytest.mark.asyncio
+    async def test_generate_sets_notified_at_on_success(self, tmp_path) -> None:
+        """Digest.notified_at is set when notification succeeds."""
+        articles = [_make_article()]
+        mock_db = MockDB(articles)
+        mock_notifier = MockNotifier(success=True)
+
+        with (
+            patch("src.core.services.digest.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch("src.core.services.digest.DIGESTS_DIR", tmp_path),
+        ):
+            service = DigestService(
+                settings_service=MockSettingsService(telegram_notifications=True),
+                summarizer_service=MockSummarizerService(),
+                notifier=mock_notifier,
+            )
+            digest = await service.generate()
+
+        assert digest.notified_at is not None
+
+    @pytest.mark.asyncio
+    async def test_generate_no_notified_at_on_failure(self, tmp_path) -> None:
+        """Digest.notified_at is NOT set when notification fails."""
+        articles = [_make_article()]
+        mock_db = MockDB(articles)
+        mock_notifier = MockNotifier(success=False)
+
+        with (
+            patch("src.core.services.digest.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch("src.core.services.digest.DIGESTS_DIR", tmp_path),
+        ):
+            service = DigestService(
+                settings_service=MockSettingsService(telegram_notifications=True),
+                summarizer_service=MockSummarizerService(),
+                notifier=mock_notifier,
+            )
+            await service.generate()
+
+        # Notification was attempted but failed
+        assert len(mock_notifier.calls) == 1
+
+    @pytest.mark.asyncio
+    async def test_generate_succeeds_even_if_notification_fails(self, tmp_path) -> None:
+        """Digest generation succeeds even when notification fails."""
+        articles = [_make_article()]
+        mock_db = MockDB(articles)
+        mock_notifier = MockNotifier(success=False)
+
+        with (
+            patch("src.core.services.digest.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch("src.core.services.digest.DIGESTS_DIR", tmp_path),
+        ):
+            service = DigestService(
+                settings_service=MockSettingsService(telegram_notifications=True),
+                summarizer_service=MockSummarizerService(),
+                notifier=mock_notifier,
+            )
+            digest = await service.generate()
+
+        # Digest should still be created successfully
+        assert isinstance(digest, Digest)
+        assert digest.status == DigestStatus.READY
