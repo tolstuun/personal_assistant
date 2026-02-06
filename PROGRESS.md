@@ -8,6 +8,25 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-06: Browser Fetcher
+
+**Done:**
+- [x] Created decision doc: docs/decisions/014-browser-fetcher.md
+- [x] src/core/primitives/fetchers/browser.py — Playwright browser page fetcher
+- [x] Updated WebsiteFetcher with fallback logic and domain cache
+- [x] Added playwright dependency to pyproject.toml
+- [x] Added browser_fetcher_enabled setting
+- [x] tests/core/primitives/fetchers/test_browser.py — 11 unit tests
+- [x] Updated tests/core/primitives/fetchers/test_website.py — 8 fallback tests
+- [x] Updated CI to install Playwright chromium
+- [x] Updated docs/changelog.md
+
+**Features:**
+- Headless Chromium browser for JS-rendered content
+- Automatic fallback on 403/429 responses
+- Domain cache to skip HTTP for known-blocked sites
+- Configurable via admin settings (browser_fetcher_enabled)
+
 ### 2026-02-05: Telegram Notification on Digest
 
 **Done:**
