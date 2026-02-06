@@ -162,6 +162,20 @@ class TestSettingsServiceValidation:
         assert "summarizer_provider" in service.OPTIONS
         assert "summarizer_tier" in service.OPTIONS
 
+    def test_browser_fetcher_enabled_default(self) -> None:
+        """browser_fetcher_enabled defaults to True and is boolean."""
+        service = SettingsService()
+
+        assert service.DEFAULTS["browser_fetcher_enabled"] is True
+        assert service.TYPES["browser_fetcher_enabled"] == "boolean"
+        assert "browser_fetcher_enabled" in service.DESCRIPTIONS
+
+        # Validation works for booleans
+        service._validate_value("browser_fetcher_enabled", True)
+        service._validate_value("browser_fetcher_enabled", False)
+        with pytest.raises(ValueError):
+            service._validate_value("browser_fetcher_enabled", "true")
+
 
 class TestSettingsServiceIntegration:
     """Integration tests for SettingsService with real database."""

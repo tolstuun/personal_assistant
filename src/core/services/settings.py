@@ -40,6 +40,7 @@ class SettingsService:
         "digest_sections": ["security_news", "product_news", "market"],
         "summarizer_provider": "ollama",
         "summarizer_tier": "fast",
+        "browser_fetcher_enabled": True,
     }
 
     # Setting descriptions for UI
@@ -51,6 +52,7 @@ class SettingsService:
         "digest_sections": "Which sections to include in the digest",
         "summarizer_provider": "LLM provider for summarization (anthropic, openai, google, ollama)",
         "summarizer_tier": "LLM model tier for summarization (fast, smart, smartest)",
+        "browser_fetcher_enabled": "Use headless browser for sites that block simple HTTP requests",
     }
 
     # Setting types for UI rendering
@@ -62,6 +64,7 @@ class SettingsService:
         "digest_sections": "multiselect",
         "summarizer_provider": "select",
         "summarizer_tier": "select",
+        "browser_fetcher_enabled": "boolean",
     }
 
     # Available options for select and multiselect settings
