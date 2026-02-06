@@ -2,6 +2,19 @@
 
 ## 2026-02-06
 
+### Version-Controlled Deploy Script (Improvement)
+Moved the deploy script into the repository (`deploy/deploy.sh`) so it's version-controlled and handles all runtime dependencies automatically:
+
+- **Git pull** — fetches latest code
+- **Python dependencies** — installs packages via `pip3 install -e .`
+- **Playwright browser** — installs Chromium for the browser fetcher
+- **Database migrations** — runs `alembic upgrade head`
+- **Service restart** — restarts systemd workers
+
+**No manual steps needed after merge to master** — CI runs the deploy script automatically.
+
+For technical details, see: `docs/decisions/015-deploy-script.md`
+
 ### Browser Fetcher for Blocked Websites (New)
 Added Playwright-based browser fallback for websites that block simple HTTP requests:
 

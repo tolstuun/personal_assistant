@@ -8,6 +8,21 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-06: Version-Controlled Deploy Script
+
+**Done:**
+- [x] Created decision doc: docs/decisions/015-deploy-script.md
+- [x] deploy/deploy.sh — full deployment script (git pull, pip, playwright, alembic, restart)
+- [x] Updated CI to call deploy/deploy.sh
+- [x] Added playwright to requirements.txt
+- [x] Updated CLAUDE.md with deploy details
+- [x] Updated docs/changelog.md
+
+**Features:**
+- Automated: git pull, pip install, playwright install chromium, alembic upgrade head, service restart
+- Version-controlled — deploy process changes are reviewed in PRs
+- No manual steps after merge to master
+
 ### 2026-02-06: Browser Fetcher
 
 **Done:**

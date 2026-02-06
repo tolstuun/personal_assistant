@@ -44,6 +44,9 @@ aiofiles==25.1.0
 # Telegram
 python-telegram-bot==22.6
 
+# Browser automation
+playwright==1.58.0
+
 # Dev dependencies
 pytest==9.0.2
 pytest-asyncio==1.3.0
