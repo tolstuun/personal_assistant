@@ -112,7 +112,8 @@ export PATH="$HOME/.local/bin:$PATH"
 3. On the server, copy the example and fill in real values
 
 ### How Deployment Works
-- Deploy script (`~/personal_assistant/deploy.sh`) pulls code from git
+- Deploy script (`deploy/deploy.sh`) runs on merge to master via CI
+- It handles: git pull, pip install, playwright install, alembic migrate, service restart
 - Config files on the server stay untouched (they're not in git)
 - This means secrets persist across deployments
 

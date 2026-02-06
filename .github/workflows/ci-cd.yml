@@ -75,4 +75,4 @@ jobs:
           host: ${{ secrets.HETZNER_HOST }}
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
-          script: ~/personal_assistant/deploy.sh
+          script: ~/personal_assistant/deploy/deploy.sh
