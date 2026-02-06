@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-02-06
+
+### Browser Fetcher for Blocked Websites (New)
+Added Playwright-based browser fallback for websites that block simple HTTP requests:
+
+- **Browser Fetcher** (`src/core/primitives/fetchers/browser.py`) — Uses a headless Chromium browser via Playwright to fetch pages that return 403 or 429 to regular HTTP requests. Mimics a real user with realistic user-agent and viewport.
+
+- **Automatic Fallback** — WebsiteFetcher now automatically retries with the browser when HTTP gets blocked. A domain cache remembers which sites need the browser, so subsequent fetches skip the HTTP attempt.
+
+- **Admin Setting** — `browser_fetcher_enabled` (default: enabled). Disable via admin Settings page if you don't want browser fallback.
+
+**New dependency:** playwright (requires `playwright install chromium` on the server)
+
+**How to test:**
+```bash
+pytest tests/core/primitives/fetchers/test_browser.py tests/core/primitives/fetchers/test_website.py -v
+```
+
+For technical details, see: `docs/decisions/014-browser-fetcher.md`
+
 ## 2026-02-05
 
 ### Telegram Notification on Digest (New)
