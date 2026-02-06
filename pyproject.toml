@@ -50,6 +50,9 @@ dependencies = [
     
     # Telegram
     "python-telegram-bot>=21.0",
+
+    # Browser automation (for JS-rendered pages)
+    "playwright>=1.40.0",
 ]
 
 [project.optional-dependencies]
