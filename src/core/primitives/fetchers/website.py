@@ -27,7 +27,9 @@ class WebsiteFetcher(BaseFetcher):
     Fetches articles from websites.
 
     Uses the existing Fetcher primitive for HTTP requests
-    and trafilatura for content extraction.
+    and trafilatura for content extraction. Falls back to
+    a headless browser (Playwright) for sites that block
+    simple HTTP requests (403/429).
     """
 
     def __init__(
@@ -51,6 +53,7 @@ class WebsiteFetcher(BaseFetcher):
             )
         )
         self.concurrent_limit = concurrent_limit
+        self._browser_domains: set[str] = set()
 
     async def fetch_articles(
         self,
@@ -69,18 +72,13 @@ class WebsiteFetcher(BaseFetcher):
         """
         logger.info(f"Fetching articles from {source_url}")
 
-        # Step 1: Fetch the listing page
-        try:
-            result = await self.fetcher.fetch(source_url)
-            if not result.ok:
-                logger.error(f"Failed to fetch {source_url}: HTTP {result.status_code}")
-                return []
-        except Exception as e:
-            logger.error(f"Error fetching {source_url}: {e}")
+        # Step 1: Fetch the listing page (with browser fallback)
+        html = await self._fetch_with_fallback(source_url)
+        if not html:
             return []
 
         # Step 2: Extract article links
-        links = self._extract_article_links(result.text or "", source_url)
+        links = self._extract_article_links(html, source_url)
         logger.info(f"Found {len(links)} article links on {source_url}")
 
         # Limit to max_articles
@@ -270,14 +268,8 @@ class WebsiteFetcher(BaseFetcher):
             ExtractedArticle or None if extraction failed.
         """
         try:
-            result = await self.fetcher.fetch(url)
-            if not result.ok:
-                logger.warning(f"Failed to fetch article {url}: HTTP {result.status_code}")
-                return None
-
-            html = result.text
+            html = await self._fetch_with_fallback(url)
             if not html:
-                logger.warning(f"Empty response from {url}")
                 return None
 
             # Use trafilatura to extract content
@@ -334,3 +326,63 @@ class WebsiteFetcher(BaseFetcher):
         except Exception as e:
             logger.error(f"Error extracting article from {url}: {e}")
             return None
+
+    async def _fetch_with_fallback(self, url: str) -> str | None:
+        """
+        Fetch a URL, falling back to browser if HTTP gets blocked.
+
+        Checks the domain cache first. If the domain is known to need
+        browser fetching, skips HTTP. Otherwise tries HTTP first, and
+        falls back to Playwright on 403 or 429 responses.
+
+        Args:
+            url: The URL to fetch.
+
+        Returns:
+            The HTML content as a string, or None if both methods failed.
+        """
+        domain = urlparse(url).netloc
+        browser_enabled = await self._is_browser_enabled()
+
+        # If domain is cached as needing browser AND browser is enabled
+        if browser_enabled and domain in self._browser_domains:
+            logger.info(
+                f"Domain {domain} cached as browser-required, "
+                f"using Playwright",
+            )
+            from src.core.primitives.fetchers.browser import fetch_page
+            return await fetch_page(url)
+
+        # Try HTTP first
+        try:
+            result = await self.fetcher.fetch(url)
+            if result.ok:
+                return result.text
+
+            # Check for blocked status codes
+            if result.status_code in (403, 429) and browser_enabled:
+                logger.info(
+                    f"HTTP {result.status_code} from {domain}, "
+                    f"retrying with Playwright",
+                )
+                self._browser_domains.add(domain)
+                from src.core.primitives.fetchers.browser import (
+                    fetch_page,
+                )
+                return await fetch_page(url)
+
+            logger.warning(f"HTTP {result.status_code} from {url}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching {url}: {e}")
+            return None
+
+    async def _is_browser_enabled(self) -> bool:
+        """Check if browser fetcher is enabled in settings."""
+        try:
+            from src.core.services.settings import get_settings_service
+            service = await get_settings_service()
+            return await service.get("browser_fetcher_enabled")
+        except Exception:
+            return True

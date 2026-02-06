@@ -1,12 +1,16 @@
 """Tests for WebsiteFetcher."""
 
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.core.primitives.fetcher import FetchResult, ContentType
+from src.core.primitives.fetcher import ContentType, FetchResult
 from src.core.primitives.fetchers.base import ExtractedArticle
 from src.core.primitives.fetchers.website import WebsiteFetcher
+
+PATCH_BROWSER = "src.core.primitives.fetchers.browser.fetch_page"
+PATCH_SETTINGS = "src.core.services.settings.get_settings_service"
 
 
 class TestExtractedArticle:
@@ -433,3 +437,230 @@ class TestFetchArticles:
 
             # Should be 2 calls: 1 listing + 1 article
             assert mock_fetch.call_count == 2
+
+
+def _make_fetch_result(
+    status_code: int = 200,
+    text: str = "<html><body>content</body></html>",
+) -> FetchResult:
+    """Create a FetchResult with the given status code."""
+    return FetchResult(
+        url="https://example.com/page",
+        status_code=status_code,
+        content_type=ContentType.HTML,
+        content=text.encode(),
+        text=text,
+        headers={},
+        fetched_at=datetime.now(),
+        elapsed_ms=100,
+    )
+
+
+class MockSettingsService:
+    """Mock settings service for browser_fetcher_enabled."""
+
+    def __init__(self, enabled: bool = True) -> None:
+        self.enabled = enabled
+
+    async def get(self, key: str):
+        if key == "browser_fetcher_enabled":
+            return self.enabled
+        raise KeyError(key)
+
+
+class TestBrowserFallback:
+    """Tests for Playwright fallback in WebsiteFetcher."""
+
+    @pytest.fixture
+    def fetcher(self):
+        """Create a WebsiteFetcher with empty browser cache."""
+        return WebsiteFetcher()
+
+    @pytest.mark.asyncio
+    async def test_http_success_no_browser_call(
+        self, fetcher,
+    ) -> None:
+        """When HTTP returns 200, browser is not used."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(200),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result is not None
+        mock_br.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_403_triggers_browser_fallback(
+        self, fetcher,
+    ) -> None:
+        """When HTTP returns 403, retries with Playwright."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(403),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            mock_br.return_value = "<html>browser content</html>"
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result == "<html>browser content</html>"
+        mock_br.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_429_triggers_browser_fallback(
+        self, fetcher,
+    ) -> None:
+        """When HTTP returns 429, retries with Playwright."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(429),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            mock_br.return_value = "<html>browser content</html>"
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result == "<html>browser content</html>"
+        mock_br.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_domain_cached_after_403(
+        self, fetcher,
+    ) -> None:
+        """After a 403, the domain is added to browser cache."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(403),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            mock_br.return_value = "<html></html>"
+            await fetcher._fetch_with_fallback(
+                "https://blocked.com/page",
+            )
+
+        assert "blocked.com" in fetcher._browser_domains
+
+    @pytest.mark.asyncio
+    async def test_cached_domain_skips_http(
+        self, fetcher,
+    ) -> None:
+        """Domains in cache go directly to Playwright."""
+        fetcher._browser_domains.add("cached.com")
+
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+            ) as mock_http,
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            mock_br.return_value = "<html>cached</html>"
+            result = await fetcher._fetch_with_fallback(
+                "https://cached.com/page",
+            )
+
+        assert result == "<html>cached</html>"
+        mock_http.assert_not_called()
+        mock_br.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_browser_disabled_no_fallback(
+        self, fetcher,
+    ) -> None:
+        """When browser_fetcher_enabled=False, no fallback."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(403),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=False)
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result is None
+        mock_br.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_browser_failure_returns_none(
+        self, fetcher,
+    ) -> None:
+        """When both HTTP and browser fail, returns None."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(403),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            mock_br.return_value = None
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_500_does_not_trigger_browser(
+        self, fetcher,
+    ) -> None:
+        """HTTP 500 does not trigger browser fallback."""
+        with (
+            patch.object(
+                fetcher.fetcher,
+                "fetch",
+                new_callable=AsyncMock,
+                return_value=_make_fetch_result(500),
+            ),
+            patch(PATCH_BROWSER, new_callable=AsyncMock) as mock_br,
+            patch(PATCH_SETTINGS, new_callable=AsyncMock) as mock_ss,
+        ):
+            mock_ss.return_value = MockSettingsService(enabled=True)
+            result = await fetcher._fetch_with_fallback(
+                "https://example.com/page",
+            )
+
+        assert result is None
+        mock_br.assert_not_called()
