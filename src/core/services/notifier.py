@@ -39,10 +39,12 @@ class TelegramNotifier:
         if token is None or chat_ids is None or base_url is None:
             config = get_config()
             tg_config = config.get("telegram", {})
+        else:
+            tg_config = {}
 
-        self._token = token or tg_config.get("token", "")
+        self._token = token if token is not None else tg_config.get("token", "")
         self._chat_ids = chat_ids if chat_ids is not None else tg_config.get("allowed_users", [])
-        self._base_url = base_url or tg_config.get("webhook_url", "")
+        self._base_url = base_url if base_url is not None else tg_config.get("webhook_url", "")
 
     async def send_digest_notification(self, digest: Digest, article_count: int) -> bool:
         """
