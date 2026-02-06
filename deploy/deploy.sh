@@ -14,6 +14,9 @@
 #
 set -euo pipefail
 
+# Ensure ~/.local/bin is on PATH (pip installs scripts there)
+export PATH="$HOME/.local/bin:$PATH"
+
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
