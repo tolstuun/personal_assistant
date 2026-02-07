@@ -8,6 +8,15 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-07: Browser Fetcher Timeout Fix
+
+**Done:**
+- [x] Changed wait strategy from `networkidle` to `domcontentloaded`
+- [x] Increased default timeout from 30s to 60s
+- [x] Added fallback: domcontentloaded timeout → retry with `commit`
+- [x] Added 5 new tests for timeout and fallback behavior
+- [x] Updated docs/changelog.md
+
 ### 2026-02-06: Version-Controlled Deploy Script
 
 **Done:**

@@ -58,13 +58,16 @@ async def shutdown() -> None:
     logger.info("Playwright browser closed")
 
 
-async def fetch_page(url: str, timeout_ms: int = 30000) -> str | None:
+async def fetch_page(url: str, timeout_ms: int = 60000) -> str | None:
     """
     Fetch a page using a headless browser and return its HTML.
 
     Creates a fresh browser context for each request to isolate
     cookies and state. Mimics a real user with realistic user-agent,
     viewport, and a small random delay after page load.
+
+    Uses 'domcontentloaded' wait strategy for speed. If that times
+    out, falls back to 'commit' (page started receiving data).
 
     Args:
         url: The URL to fetch.
@@ -95,7 +98,19 @@ async def fetch_page(url: str, timeout_ms: int = 30000) -> str | None:
         )
 
         page = await context.new_page()
-        await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+
+        try:
+            await page.goto(
+                url, wait_until="domcontentloaded", timeout=timeout_ms,
+            )
+        except TimeoutError:
+            logger.info(
+                f"domcontentloaded timed out for {url}, "
+                f"retrying with commit",
+            )
+            await page.goto(
+                url, wait_until="commit", timeout=timeout_ms,
+            )
 
         # Small random delay to let JS-rendered content settle
         await asyncio.sleep(random.uniform(1.0, 3.0))
