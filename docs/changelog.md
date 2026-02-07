@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-02-07
+
+### Browser Fetcher Timeout Fix (Fix)
+Fixed timeout issues with the Playwright browser fetcher that caused some sites (e.g. msspalert.com) to hang:
+
+- **Faster wait strategy** — Changed from `networkidle` (waits for all network activity to stop) to `domcontentloaded` (waits for HTML to parse). Most content is available at this point.
+- **Longer timeout** — Increased from 30s to 60s for slow sites.
+- **Automatic fallback** — If `domcontentloaded` times out, retries with `commit` (page started receiving data). This gets at least partial content from very slow sites.
+
+**No action needed** — the fix is automatic.
+
 ## 2026-02-06
 
 ### Version-Controlled Deploy Script (Improvement)

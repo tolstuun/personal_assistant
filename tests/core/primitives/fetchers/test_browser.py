@@ -192,3 +192,64 @@ class TestBrowserFetchPage:
 
         call_kwargs = page.goto.call_args.kwargs
         assert call_kwargs["timeout"] == 15000
+
+    @pytest.mark.asyncio
+    async def test_fetch_page_default_timeout_is_60s(self) -> None:
+        """Default timeout is 60000ms (60 seconds)."""
+        pw_cm, _, _, page = _make_mock_playwright()
+
+        with patch(PATCH_PW, return_value=pw_cm):
+            with patch(PATCH_SLEEP, new_callable=AsyncMock):
+                await browser.fetch_page("https://example.com")
+
+        call_kwargs = page.goto.call_args.kwargs
+        assert call_kwargs["timeout"] == 60000
+
+    @pytest.mark.asyncio
+    async def test_fetch_page_uses_domcontentloaded(self) -> None:
+        """fetch_page uses domcontentloaded wait strategy."""
+        pw_cm, _, _, page = _make_mock_playwright()
+
+        with patch(PATCH_PW, return_value=pw_cm):
+            with patch(PATCH_SLEEP, new_callable=AsyncMock):
+                await browser.fetch_page("https://example.com")
+
+        call_kwargs = page.goto.call_args.kwargs
+        assert call_kwargs["wait_until"] == "domcontentloaded"
+
+    @pytest.mark.asyncio
+    async def test_fetch_page_fallback_to_commit(self) -> None:
+        """Falls back to 'commit' when domcontentloaded times out."""
+        pw_cm, _, _, page = _make_mock_playwright()
+        # First call (domcontentloaded) times out, second (commit) succeeds
+        page.goto.side_effect = [TimeoutError("Timed out"), None]
+
+        with patch(PATCH_PW, return_value=pw_cm):
+            with patch(PATCH_SLEEP, new_callable=AsyncMock):
+                result = await browser.fetch_page(
+                    "https://example.com",
+                )
+
+        assert result == "<html><body>Hello</body></html>"
+        assert page.goto.call_count == 2
+        first_call = page.goto.call_args_list[0]
+        assert first_call.kwargs["wait_until"] == "domcontentloaded"
+        second_call = page.goto.call_args_list[1]
+        assert second_call.kwargs["wait_until"] == "commit"
+
+    @pytest.mark.asyncio
+    async def test_fetch_page_commit_fallback_also_fails(self) -> None:
+        """Returns None when both strategies fail."""
+        pw_cm, _, _, page = _make_mock_playwright()
+        page.goto.side_effect = [
+            TimeoutError("domcontentloaded timeout"),
+            TimeoutError("commit timeout"),
+        ]
+
+        with patch(PATCH_PW, return_value=pw_cm):
+            result = await browser.fetch_page(
+                "https://example.com",
+            )
+
+        assert result is None
+        assert page.goto.call_count == 2
