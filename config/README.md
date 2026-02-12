@@ -9,6 +9,8 @@ config/
 ├── llm.yaml              # LLM providers and API keys (create from example)
 ├── llm.example.yaml      # Example LLM config (committed to git)
 ├── storage.yaml          # Database and storage settings
+├── workers.example.yaml  # Worker defaults (committed to git)
+├── workers.yaml          # Worker overrides (create from example, gitignored)
 │
 ├── my_profile/           # Your personal data for Job Hunter
 │   ├── story.yaml       # Your narrative, how you position yourself
