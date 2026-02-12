@@ -16,6 +16,23 @@ pytest tests/core/config/test_loader.py -v
 
 For technical details, see: `docs/decisions/016-workers-config-loading.md`
 
+### Job Run Logging (New)
+Added a `job_runs` database table and service to record background job executions (fetch worker, future digest scheduler, etc.):
+
+- **JobRun model** — Stores job name, status (running/success/error/skipped), start and finish times, small stats as JSON, and error messages.
+- **JobRunService** — Three methods: `start()` to begin tracking a run, `finish()` to record the outcome, `get_latest()` to check the most recent run.
+- **Alembic migration 004** — Creates the `job_runs` table with indexes on `job_name` and `started_at`.
+
+This is the data foundation only — no admin UI or worker changes yet. Those come in follow-up PRs.
+
+**How to test:**
+```bash
+docker-compose up -d postgres
+pytest tests/core/services/test_job_runs.py -v
+```
+
+For technical details, see: `docs/decisions/017-job-run-logging.md`
+
 ## 2026-02-07
 
 ### Browser Fetcher Timeout Fix (Fix)
