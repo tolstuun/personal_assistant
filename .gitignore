@@ -46,6 +46,7 @@ config/llm.yaml
 config/storage.yaml
 config/telegram.yaml
 config/admin.yaml
+config/workers.yaml
 !config/*.example.yaml
 
 # Environment variables

@@ -8,6 +8,17 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-12: Workers Config Loading Fix
+
+**Done:**
+- [x] Created decision doc: docs/decisions/016-workers-config-loading.md
+- [x] Added `workers.example.yaml` and `workers.yaml` to config loader
+- [x] Created `config/workers.example.yaml` with sensible defaults
+- [x] Updated `.gitignore` to ignore `config/workers.yaml`
+- [x] Updated `config/README.md` structure section
+- [x] Added 2 tests in `tests/core/config/test_loader.py`
+- [x] Updated docs/changelog.md
+
 ### 2026-02-07: Browser Fetcher Timeout Fix
 
 **Done:**

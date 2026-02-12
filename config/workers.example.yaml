@@ -1,0 +1,9 @@
+# Workers configuration — defaults for background workers.
+# Override per-deployment in config/workers.yaml (gitignored).
+
+workers:
+  security_digest_worker:
+    interval_seconds: 300
+    jitter_seconds: 60
+    max_sources: 10
+    log_level: INFO
