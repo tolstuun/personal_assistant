@@ -12,6 +12,7 @@ from src.core.models.security_digest import (
     Source,
     SourceType,
 )
+from src.core.models.job_runs import JobRun
 from src.core.models.settings import Setting
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "Digest",
     "DigestStatus",
     "Setting",
+    "JobRun",
 ]
