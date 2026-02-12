@@ -33,6 +33,19 @@ pytest tests/core/services/test_job_runs.py -v
 
 For technical details, see: `docs/decisions/017-job-run-logging.md`
 
+### Fetch Cycle Logging & Admin Operations Page (New)
+The background fetch worker now records each fetch cycle to the `job_runs` table, and a new Admin page shows the results:
+
+- **Fetch cycle logging** — Every fetch cycle creates a job run with status, timing, and stats (sources checked, articles found/new/filtered, errors). If the cycle crashes, the error is recorded. Logging failures never crash the worker.
+- **Admin Operations page** (`/admin/operations`) — Shows the latest fetch cycle status card and a table of the last 20 job runs with timing, stats, and errors.
+
+**How to test:**
+```bash
+pytest tests/workers/test_security_digest_worker.py tests/admin/test_routes.py -v
+```
+
+For technical details, see: `docs/decisions/018-ops-transparency-job-runs-admin.md`
+
 ## 2026-02-07
 
 ### Browser Fetcher Timeout Fix (Fix)

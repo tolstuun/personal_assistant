@@ -7,7 +7,7 @@ This document describes the Personal Assistant architecture. Updated as the proj
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                              INTERFACES                                    │
-│  Telegram Bot  │  Web UI (Streamlit)  │  CLI  │  REST API                 │
+│  Telegram Bot  │  Admin UI (/admin)  │  CLI  │  REST API                  │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -15,34 +15,33 @@ This document describes the Personal Assistant architecture. Updated as the proj
 │                         FASTAPI GATEWAY                                    │
 │  - Authentication                                                         │
 │  - Request routing                                                        │
-│  - Logging                                                                │
+│  - Admin UI (HTMX + Tailwind)                                             │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │
-                                ▼
-┌────────────────────────────────────────────────────────────────────────────┐
-│                          ORCHESTRATOR                                      │
-│  - Task queue (Redis)                                                     │
-│  - Scheduler (cron jobs)                                                  │
-│  - Human-in-the-loop flags                                                │
-└──────┬─────────┬─────────┬─────────┬─────────┬─────────┬──────────────────┘
-       │         │         │         │         │         │
-       ▼         ▼         ▼         ▼         ▼         ▼
-   [Agents]  [Agents]  [Agents]  [Agents]  [Agents]  [Agents]
-       │         │         │         │         │         │
-       └─────────┴─────────┴─────┬───┴─────────┴─────────┘
-                                 │
-                                 ▼
+                ┌───────────────┼───────────────┐
+                ▼                               ▼
+┌──────────────────────────┐  ┌─────────────────────────────────────────────┐
+│     BACKGROUND WORKERS   │  │                ORCHESTRATOR                  │
+│  Security Digest Worker  │  │  - Task queue (Redis)                       │
+│  (writes job_runs for    │  │  - Scheduler (cron jobs)                    │
+│   ops transparency)      │  │  - Human-in-the-loop flags                  │
+└────────────┬─────────────┘  └──────┬──────────────────────────────────────┘
+             │                       │
+             ▼                       ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                              CORE                                          │
-│  LLM Layer  │  Primitives  │  Storage  │  Config  │  Integrations         │
+│  LLM Layer  │  Primitives  │  Services  │  Storage  │  Config             │
 └────────────────────────────────────────────────────────────────────────────┘
                                  │
                                  ▼
 ┌────────────────────────────────────────────────────────────────────────────┐
 │                         INFRASTRUCTURE                                     │
-│  PostgreSQL  │  Redis  │  Qdrant  │  MinIO                                │
+│  PostgreSQL (+ job_runs)  │  Redis  │  Qdrant  │  MinIO                   │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Operational Transparency
+Background workers (e.g. Security Digest Worker) record each execution cycle to the `job_runs` table in PostgreSQL via `JobRunService`. The Admin UI at `/admin/operations` surfaces these records so the owner can see at a glance whether jobs are running, succeeding, or failing — without checking server logs.
 
 ## Principles
 
