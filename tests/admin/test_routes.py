@@ -126,3 +126,22 @@ class TestSettingsRoutes:
         routes = [route.path for route in app.routes]
 
         assert "/settings/{key}" in routes
+
+
+class TestOperationsRoutes:
+    """Tests for operations routes."""
+
+    def test_operations_route_exists(self) -> None:
+        """Operations route is configured."""
+        app = create_admin_app()
+        routes = [route.path for route in app.routes]
+
+        assert "/operations" in routes
+
+    def test_operations_redirects_without_auth(self) -> None:
+        """Operations page redirects to login without auth."""
+        app = create_admin_app()
+        client = TestClient(app, follow_redirects=False)
+
+        response = client.get("/operations")
+        assert response.status_code == 303

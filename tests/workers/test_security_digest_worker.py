@@ -3,6 +3,7 @@
 import asyncio
 import os
 import signal
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -367,3 +368,106 @@ class TestRunWorker:
 
                 # Verify random.uniform was called with correct bounds
                 mock_random.assert_called_with(0, config.jitter_seconds)
+
+
+class TestJobRunLogging:
+    """Tests for job run logging in fetch cycles."""
+
+    @pytest.fixture
+    def config(self):
+        """Create a test worker config."""
+        return WorkerConfig(
+            interval_seconds=1,
+            jitter_seconds=0,
+            max_sources=5,
+            log_level="INFO",
+        )
+
+    @pytest.fixture
+    def mock_fetch_stats(self):
+        """Create mock fetch stats."""
+        return FetchStats(
+            sources_checked=3,
+            sources_fetched=2,
+            articles_found=10,
+            articles_new=8,
+            articles_filtered=2,
+            articles_old=0,
+            errors=[],
+        )
+
+    async def test_job_run_start_and_finish_called_on_success(
+        self, config, mock_fetch_stats
+    ):
+        """JobRunService.start and finish are called around a successful fetch cycle."""
+        shutdown_event.clear()
+
+        mock_manager = MagicMock()
+        mock_manager.fetch_due_sources = AsyncMock(return_value=mock_fetch_stats)
+
+        run_id = uuid.uuid4()
+        mock_job_runs = MagicMock()
+        mock_job_runs.start = AsyncMock(return_value=run_id)
+        mock_job_runs.finish = AsyncMock()
+
+        with (
+            patch(
+                "src.workers.security_digest_worker.FetcherManager",
+                return_value=mock_manager,
+            ),
+            patch(
+                "src.workers.security_digest_worker.JobRunService",
+                return_value=mock_job_runs,
+            ),
+        ):
+            worker_task = asyncio.create_task(run_worker(config))
+            await asyncio.sleep(0.5)
+            shutdown_event.set()
+            await worker_task
+
+        # start() should have been called with job_name="fetch_cycle"
+        mock_job_runs.start.assert_called()
+        start_args = mock_job_runs.start.call_args
+        assert start_args.args[0] == "fetch_cycle"
+
+        # finish() should have been called with status="success"
+        mock_job_runs.finish.assert_called()
+        finish_kwargs = mock_job_runs.finish.call_args.kwargs
+        assert finish_kwargs.get("status") == "success"
+        assert "details" in finish_kwargs
+        assert finish_kwargs["details"]["articles_new"] == 8
+
+    async def test_job_run_finish_called_with_error_on_exception(self, config):
+        """finish() called with status='error' when fetch_due_sources raises."""
+        shutdown_event.clear()
+
+        mock_manager = MagicMock()
+        mock_manager.fetch_due_sources = AsyncMock(
+            side_effect=Exception("DB connection lost")
+        )
+
+        run_id = uuid.uuid4()
+        mock_job_runs = MagicMock()
+        mock_job_runs.start = AsyncMock(return_value=run_id)
+        mock_job_runs.finish = AsyncMock()
+
+        with (
+            patch(
+                "src.workers.security_digest_worker.FetcherManager",
+                return_value=mock_manager,
+            ),
+            patch(
+                "src.workers.security_digest_worker.JobRunService",
+                return_value=mock_job_runs,
+            ),
+        ):
+            worker_task = asyncio.create_task(run_worker(config))
+            await asyncio.sleep(0.5)
+            shutdown_event.set()
+            await worker_task
+
+        # finish() should have been called with status="error"
+        mock_job_runs.finish.assert_called()
+        finish_kwargs = mock_job_runs.finish.call_args.kwargs
+        assert finish_kwargs.get("status") == "error"
+        assert "DB connection lost" in finish_kwargs.get("error_message", "")
