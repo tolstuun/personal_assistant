@@ -8,6 +8,17 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-12: Job Run Logging
+
+**Done:**
+- [x] Created decision doc: docs/decisions/017-job-run-logging.md
+- [x] Added `src/core/models/job_runs.py` — JobRun model
+- [x] Added Alembic migration 004 — `job_runs` table
+- [x] Added `src/core/services/job_runs.py` — JobRunService (start/finish/get_latest)
+- [x] Added 4 integration tests in `tests/core/services/test_job_runs.py`
+- [x] Updated clean_database fixture for JobRun cleanup
+- [x] Updated docs/changelog.md
+
 ### 2026-02-12: Workers Config Loading Fix
 
 **Done:**

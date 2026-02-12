@@ -64,7 +64,7 @@ async def clean_database(database: Database) -> Database:
     Cleans up all data between tests.
     """
     # Clean up data before test
-    from src.core.models import Article, Category, Digest, Setting, Source
+    from src.core.models import Article, Category, Digest, JobRun, Setting, Source
 
     async with database.session() as session:
         # Delete in correct order to respect foreign keys
@@ -73,6 +73,7 @@ async def clean_database(database: Database) -> Database:
         await session.execute(Source.__table__.delete())
         await session.execute(Category.__table__.delete())
         await session.execute(Setting.__table__.delete())
+        await session.execute(JobRun.__table__.delete())
         await session.commit()
 
     yield database
@@ -84,4 +85,5 @@ async def clean_database(database: Database) -> Database:
         await session.execute(Source.__table__.delete())
         await session.execute(Category.__table__.delete())
         await session.execute(Setting.__table__.delete())
+        await session.execute(JobRun.__table__.delete())
         await session.commit()
