@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import select
 
 from src.core.models.job_runs import JobRun
-from src.core.storage.postgres import Database
+from src.core.storage.postgres import Database, get_db
 from src.core.utils.time import utcnow_naive
 
 logger = logging.getLogger(__name__)
@@ -25,9 +25,15 @@ class JobRunService:
     Records each execution with status, timing, and optional details/errors.
     """
 
-    def __init__(self, db: Database) -> None:
-        """Initialize with a database instance."""
+    def __init__(self, db: Database | None = None) -> None:
+        """Initialize with a database instance, or None to use get_db() lazily."""
         self._db = db
+
+    async def _get_db(self) -> Database:
+        """Get the database instance, resolving lazily if needed."""
+        if self._db is None:
+            self._db = await get_db()
+        return self._db
 
     async def start(self, job_name: str, details: dict[str, Any] | None = None) -> uuid.UUID:
         """
@@ -48,7 +54,8 @@ class JobRunService:
             started_at=utcnow_naive(),
             details=details if details is not None else {},
         )
-        async with self._db.session() as session:
+        db = await self._get_db()
+        async with db.session() as session:
             session.add(run)
             await session.commit()
             await session.refresh(run)
@@ -75,7 +82,8 @@ class JobRunService:
             details: Optional metadata dict (replaces existing details if provided).
             error_message: Optional short error description.
         """
-        async with self._db.session() as session:
+        db = await self._get_db()
+        async with db.session() as session:
             stmt = select(JobRun).where(JobRun.id == run_id)
             result = await session.execute(stmt)
             run = result.scalar_one_or_none()
@@ -105,7 +113,8 @@ class JobRunService:
         Returns:
             The most recent JobRun, or None if no runs exist.
         """
-        async with self._db.session() as session:
+        db = await self._get_db()
+        async with db.session() as session:
             stmt = (
                 select(JobRun)
                 .where(JobRun.job_name == job_name)
