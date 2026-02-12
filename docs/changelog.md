@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-02-12
+
+### Workers Config Loading Fix (Fix)
+The background worker reads its settings (interval, jitter, max sources, log level) from the config under `workers.security_digest_worker`, but the config loader wasn't loading `workers.yaml` at all. The worker silently fell back to hardcoded defaults.
+
+- **Config loader updated** — Now loads `config/workers.example.yaml` (defaults) and `config/workers.yaml` (overrides), same as other config files.
+- **Example file added** — `config/workers.example.yaml` with sensible defaults (interval: 300s, jitter: 60s, max sources: 10, log level: INFO).
+- **Gitignore updated** — `config/workers.yaml` is gitignored so deployment-specific overrides stay on the server.
+
+**How to test:**
+```bash
+pytest tests/core/config/test_loader.py -v
+```
+
+For technical details, see: `docs/decisions/016-workers-config-loading.md`
+
 ## 2026-02-07
 
 ### Browser Fetcher Timeout Fix (Fix)
