@@ -22,9 +22,10 @@ This document describes the Personal Assistant architecture. Updated as the proj
                 ▼                               ▼
 ┌──────────────────────────┐  ┌─────────────────────────────────────────────┐
 │     BACKGROUND WORKERS   │  │                ORCHESTRATOR                  │
-│  Security Digest Worker  │  │  - Task queue (Redis)                       │
-│  (writes job_runs for    │  │  - Scheduler (cron jobs)                    │
-│   ops transparency)      │  │  - Human-in-the-loop flags                  │
+│  - Fetch Worker          │  │  - Task queue (Redis)                       │
+│  - Digest Scheduler      │  │  - Scheduler (cron jobs)                    │
+│  (write job_runs;        │  │  - Human-in-the-loop flags                  │
+│   scheduler → Telegram)  │  │                                              │
 └────────────┬─────────────┘  └──────┬──────────────────────────────────────┘
              │                       │
              ▼                       ▼
@@ -41,7 +42,7 @@ This document describes the Personal Assistant architecture. Updated as the proj
 ```
 
 ### Operational Transparency
-Background workers (e.g. Security Digest Worker) record each execution cycle to the `job_runs` table in PostgreSQL via `JobRunService`. The Admin UI at `/admin/operations` surfaces these records so the owner can see at a glance whether jobs are running, succeeding, or failing — without checking server logs.
+Background workers (Fetch Worker, Digest Scheduler) record each execution cycle to the `job_runs` table in PostgreSQL via `JobRunService`. The Digest Scheduler generates digests daily at `digest_time` (UTC) and optionally sends Telegram notifications. The Admin UI at `/admin/operations` surfaces job runs, digest status, and scheduling info so the owner can see at a glance whether jobs are running, succeeding, or failing — without checking server logs.
 
 ## Principles
 
