@@ -8,6 +8,19 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-12: Fetch Cycle Logging & Admin Operations Page
+
+**Done:**
+- [x] Created decision doc: docs/decisions/018-ops-transparency-job-runs-admin.md
+- [x] Instrumented fetch worker to record job_runs for each fetch cycle
+- [x] Added admin `/operations` page with latest fetch cycle card + recent runs table
+- [x] Added "Operations" nav link to admin base template
+- [x] Updated JobRunService to support lazy DB resolution
+- [x] Added 2 worker tests for job run logging (success + error)
+- [x] Added 2 admin tests for operations route (exists + auth redirect)
+- [x] Updated ARCHITECTURE.md diagram + ops transparency paragraph
+- [x] Updated docs/changelog.md
+
 ### 2026-02-12: Job Run Logging
 
 **Done:**

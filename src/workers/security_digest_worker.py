@@ -20,6 +20,7 @@ from typing import NoReturn
 
 from src.core.config.loader import get_config
 from src.core.primitives.fetchers.manager import FetcherManager
+from src.core.services.job_runs import JobRunService
 from src.core.services.settings import SettingsService
 from src.core.storage.postgres import get_db
 
@@ -124,6 +125,7 @@ async def run_worker(config: WorkerConfig) -> None:
 
     manager = FetcherManager()
     settings_service = SettingsService()
+    job_runs = JobRunService()
 
     while not shutdown_event.is_set():
         # Read interval from database (allows dynamic changes)
@@ -138,6 +140,13 @@ async def run_worker(config: WorkerConfig) -> None:
                 f"Could not read fetch_interval_minutes from database: {e}. "
                 f"Using config value: {config.interval_seconds}s"
             )
+
+        # Record job run start (never crash the worker on logging failure)
+        run_id = None
+        try:
+            run_id = await job_runs.start("fetch_cycle")
+        except Exception as e:
+            logger.warning(f"Could not record job run start: {e}")
 
         try:
             logger.info("Starting fetch cycle...")
@@ -157,9 +166,50 @@ async def run_worker(config: WorkerConfig) -> None:
                 for error in stats.errors:
                     logger.warning(f"Fetch error: {error}")
 
+            # Record success
+            if run_id is not None:
+                try:
+                    # Truncate error strings and limit count
+                    truncated_errors = [
+                        e[:500] for e in stats.errors[:20]
+                    ]
+                    await job_runs.finish(
+                        run_id,
+                        status="success",
+                        details={
+                            "sources_checked": stats.sources_checked,
+                            "sources_fetched": stats.sources_fetched,
+                            "articles_found": stats.articles_found,
+                            "articles_new": stats.articles_new,
+                            "articles_filtered": stats.articles_filtered,
+                            "articles_old": stats.articles_old,
+                            "errors_count": len(stats.errors),
+                            "errors": truncated_errors,
+                            "max_sources": config.max_sources,
+                            "interval_seconds": interval_seconds,
+                        },
+                    )
+                except Exception as e:
+                    logger.warning(f"Could not record job run finish: {e}")
+
         except Exception as e:
             # Log error but don't crash - this is a recoverable error
             logger.error(f"Error in fetch cycle: {e}", exc_info=True)
+
+            # Record error
+            if run_id is not None:
+                try:
+                    await job_runs.finish(
+                        run_id,
+                        status="error",
+                        error_message=str(e)[:500],
+                        details={
+                            "max_sources": config.max_sources,
+                            "interval_seconds": interval_seconds,
+                        },
+                    )
+                except Exception as log_err:
+                    logger.warning(f"Could not record job run error: {log_err}")
 
         # Calculate sleep time with jitter to avoid thundering herd
         jitter = random.uniform(0, config.jitter_seconds)
