@@ -2,12 +2,12 @@
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from src.admin.auth import require_auth
 from src.admin.templates_config import templates
 from src.core.models.job_runs import JobRun
-from src.core.models.security_digest import Digest
+from src.core.models.security_digest import Article, Digest
 from src.core.services.settings import SettingsService
 from src.core.storage.postgres import get_db
 from src.core.utils.time import utcnow_naive
@@ -60,10 +60,16 @@ async def operations(
         result = await session.execute(latest_digest_stmt)
         latest_digest = result.scalar_one_or_none()
 
-        # Count articles in latest digest
+        # Count articles in latest digest (explicit query to avoid lazy-load)
         digest_article_count = 0
-        if latest_digest and latest_digest.articles:
-            digest_article_count = len(latest_digest.articles)
+        if latest_digest:
+            count_stmt = (
+                select(func.count())
+                .select_from(Article)
+                .where(Article.digest_id == latest_digest.id)
+            )
+            result = await session.execute(count_stmt)
+            digest_article_count = result.scalar_one()
 
         # Get last 20 job runs overall
         recent_stmt = (

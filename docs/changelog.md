@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-02-13
+
+### Operations Page MissingGreenlet Fix (Fix)
+The `/admin/operations` page crashed with a 500 error (`sqlalchemy.exc.MissingGreenlet`) when a digest existed in the database. The cause: accessing `latest_digest.articles` triggered a lazy-load SQL query inside an async context, which SQLAlchemy's asyncio mode does not allow.
+
+- **Root cause** — `latest_digest.articles` is a lazy-loaded relationship. In async SQLAlchemy, lazy loads raise `MissingGreenlet` because there's no sync greenlet to run the query in.
+- **Fix** — Replaced the lazy-load with an explicit `SELECT count(*)` query on the `articles` table filtered by `digest_id`. No relationship access needed.
+- **Tests added** — Authenticated GET `/admin/operations` test covering both "no digests" and "digest exists" scenarios, using mocked DB sessions.
+
+**How to test:**
+```bash
+pytest tests/admin/test_routes.py -v
+```
+
 ## 2026-02-12
 
 ### Workers Config Loading Fix (Fix)

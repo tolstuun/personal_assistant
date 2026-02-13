@@ -4,9 +4,13 @@ Tests for Admin UI routes.
 Tests verify route configuration and response handling.
 """
 
+from datetime import datetime
+from unittest.mock import AsyncMock, MagicMock, patch
+
 from fastapi.testclient import TestClient
 
 from src.admin.app import create_admin_app
+from src.admin.auth import require_auth
 
 
 class TestAdminApp:
@@ -157,3 +161,107 @@ class TestOperationsDigestStatus:
         template_path = Path("src/admin/templates/operations.html")
         content = template_path.read_text()
         assert "Digest Status" in content
+
+
+def _mock_session_factory(query_results: dict | None = None) -> MagicMock:
+    """
+    Create a mock async DB session that returns controlled query results.
+
+    Args:
+        query_results: Map of table name to list of scalars to return.
+    """
+    results = query_results or {}
+
+    async def mock_execute(stmt):
+        result_mock = MagicMock()
+        # Determine which query this is by inspecting the statement string
+        stmt_str = str(stmt)
+        if "job_runs" in stmt_str and "fetch_cycle" in stmt_str:
+            result_mock.scalar_one_or_none.return_value = results.get("latest_fetch")
+        elif "job_runs" in stmt_str and "digest_scheduler" in stmt_str:
+            result_mock.scalar_one_or_none.return_value = results.get("latest_scheduler")
+        elif "digests" in stmt_str:
+            result_mock.scalar_one_or_none.return_value = results.get("latest_digest")
+        elif "articles" in stmt_str and "count" in stmt_str.lower():
+            result_mock.scalar_one.return_value = results.get("article_count", 0)
+        elif "job_runs" in stmt_str:
+            scalars_mock = MagicMock()
+            scalars_mock.all.return_value = results.get("recent_runs", [])
+            result_mock.scalars.return_value = scalars_mock
+        else:
+            result_mock.scalar_one_or_none.return_value = None
+        return result_mock
+
+    session = MagicMock()
+    session.execute = mock_execute
+    session.__aenter__ = AsyncMock(return_value=session)
+    session.__aexit__ = AsyncMock(return_value=None)
+
+    db = MagicMock()
+    db.session.return_value = session
+    return db
+
+
+class TestOperationsAuthenticated:
+    """Tests for operations page with mocked auth and DB."""
+
+    def _make_client(self, query_results: dict | None = None) -> TestClient:
+        """Create a test client with mocked auth, DB, and settings."""
+        app = create_admin_app()
+        app.dependency_overrides[require_auth] = lambda: True
+
+        mock_db = _mock_session_factory(query_results)
+
+        self._patches = [
+            # Bypass middleware auth check
+            patch("src.admin.app.get_auth_status", return_value=True),
+            patch(
+                "src.admin.routes.operations.get_db",
+                new_callable=AsyncMock,
+                return_value=mock_db,
+            ),
+            patch("src.admin.routes.operations.SettingsService"),
+        ]
+        for p in self._patches:
+            mock = p.start()
+            if hasattr(p, "attribute") and p.attribute == "SettingsService":
+                instance = mock.return_value
+                async def mock_get(key: str) -> object:
+                    return {"digest_time": "08:00", "telegram_notifications": True}[key]
+                instance.get = AsyncMock(side_effect=mock_get)
+
+        return TestClient(app)
+
+    def _cleanup(self) -> None:
+        for p in self._patches:
+            p.stop()
+
+    def test_operations_returns_200_no_data(self) -> None:
+        """Operations page returns 200 with empty DB (no digests, no runs)."""
+        client = self._make_client()
+        try:
+            response = client.get("/operations")
+            assert response.status_code == 200
+            assert "Operations" in response.text
+            assert "Digest Status" in response.text
+        finally:
+            self._cleanup()
+
+    def test_operations_returns_200_with_digest(self) -> None:
+        """Operations page returns 200 when a digest exists (no lazy-load)."""
+        digest = MagicMock()
+        digest.date = datetime(2026, 2, 12).date()
+        digest.id = "test-digest-id"
+        digest.created_at = datetime(2026, 2, 12, 8, 5, 0)
+        digest.notified_at = datetime(2026, 2, 12, 8, 5, 30)
+
+        client = self._make_client({
+            "latest_digest": digest,
+            "article_count": 5,
+        })
+        try:
+            response = client.get("/operations")
+            assert response.status_code == 200
+            assert "Digest Status" in response.text
+        finally:
+            self._cleanup()

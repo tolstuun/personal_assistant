@@ -8,6 +8,14 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-13: Operations Page MissingGreenlet Fix
+
+**Done:**
+- [x] Fixed `MissingGreenlet` crash on `/admin/operations` caused by lazy-loading `latest_digest.articles`
+- [x] Replaced with explicit `SELECT count(*)` query on articles table
+- [x] Added 2 authenticated route tests (empty DB + digest exists)
+- [x] Updated docs/changelog.md
+
 ### 2026-02-12: Daily Digest Scheduler
 
 **Done:**
