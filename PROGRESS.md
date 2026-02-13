@@ -8,6 +8,14 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-13: SQLAlchemy bool() MissingGreenlet Fix
+
+**Done:**
+- [x] Created decision doc: docs/decisions/020-missinggreenlet-bool-check.md
+- [x] Replaced 9 bare truthiness checks on SQLAlchemy models with `is None`/`is not None` across 4 files
+- [x] Added `pa-web` (uvicorn) restart to deploy script
+- [x] Updated docs/changelog.md
+
 ### 2026-02-13: Operations Page MissingGreenlet Fix
 
 **Done:**

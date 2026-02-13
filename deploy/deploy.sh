@@ -50,6 +50,11 @@ echo ""
 
 # 5. Restart services
 echo "--- Restarting services ---"
+if systemctl is-active --quiet pa-web 2>/dev/null; then
+    sudo systemctl restart pa-web
+    echo "Restarted pa-web (uvicorn)"
+fi
+
 if systemctl is-active --quiet pa-worker 2>/dev/null; then
     sudo systemctl restart pa-worker
     echo "Restarted pa-worker"

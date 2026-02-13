@@ -62,7 +62,7 @@ async def operations(
 
         # Count articles in latest digest (explicit query to avoid lazy-load)
         digest_article_count = 0
-        if latest_digest:
+        if latest_digest is not None:
             count_stmt = (
                 select(func.count())
                 .select_from(Article)
