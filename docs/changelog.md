@@ -2,6 +2,22 @@
 
 ## 2026-02-13
 
+### SQLAlchemy bool() MissingGreenlet Fix (Fix)
+The `/admin/operations` page still crashed with `MissingGreenlet` even after PR #25. The previous fix replaced `latest_digest.articles` but missed that `if latest_digest:` also triggers `bool()` on the model, which can lazy-load relationships in async mode.
+
+- **Root cause** — `bool()` / truthiness checks on SQLAlchemy model objects can trigger lazy-loading. The safe pattern is `if obj is not None:` instead of `if obj:`.
+- **Fix** — Replaced all 9 bare truthiness checks on SQLAlchemy model objects across 4 files with explicit `is None` / `is not None` checks.
+- **Deploy fix** — Added `pa-web` service restart to deploy script so admin route changes take effect on deploy.
+
+**Files changed:** `operations.py`, `sources.py`, `categories.py`, `manager.py`, `deploy.sh`
+
+**How to test:**
+```bash
+pytest tests/admin/test_routes.py -v
+```
+
+For technical details, see: `docs/decisions/020-missinggreenlet-bool-check.md`
+
 ### Operations Page MissingGreenlet Fix (Fix)
 The `/admin/operations` page crashed with a 500 error (`sqlalchemy.exc.MissingGreenlet`) when a digest existed in the database. The cause: accessing `latest_digest.articles` triggered a lazy-load SQL query inside an async context, which SQLAlchemy's asyncio mode does not allow.
 
