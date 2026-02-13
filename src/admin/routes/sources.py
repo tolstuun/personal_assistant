@@ -180,7 +180,7 @@ async def edit_source_form(
         result = await session.execute(stmt)
         source = result.scalar_one_or_none()
 
-        if not source:
+        if source is None:
             return Response(status_code=404, content="Source not found")
 
         cat_stmt = select(Category).order_by(Category.name)
@@ -256,7 +256,7 @@ async def update_source(
         result = await session.execute(stmt)
         source = result.scalar_one_or_none()
 
-        if not source:
+        if source is None:
             return RedirectResponse(url="/admin/sources", status_code=303)
 
         source.name = name
@@ -298,7 +298,7 @@ async def toggle_source(
         result = await session.execute(stmt)
         source = result.scalar_one_or_none()
 
-        if not source:
+        if source is None:
             return Response(status_code=404, content="Source not found")
 
         source.enabled = not source.enabled
@@ -333,7 +333,7 @@ async def delete_source(
         result = await session.execute(stmt)
         source = result.scalar_one_or_none()
 
-        if source:
+        if source is not None:
             await session.delete(source)
             await session.commit()
 

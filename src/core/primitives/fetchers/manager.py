@@ -124,7 +124,7 @@ class FetcherManager:
                 result = await session.execute(stmt)
                 source = result.scalar_one_or_none()
 
-                if not source:
+                if source is None:
                     # No more due sources available
                     break
 
@@ -177,7 +177,7 @@ class FetcherManager:
             result = await session.execute(stmt)
             source = result.scalar_one_or_none()
 
-            if not source:
+            if source is None:
                 raise ValueError(f"Source not found: {source_id}")
 
             fetcher = self.fetchers.get(source.source_type)

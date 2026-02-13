@@ -136,7 +136,7 @@ async def edit_category_form(
         result = await session.execute(stmt)
         category = result.scalar_one_or_none()
 
-        if not category:
+        if category is None:
             return Response(status_code=404, content="Category not found")
 
     return templates.TemplateResponse(
@@ -180,7 +180,7 @@ async def update_category(
         result = await session.execute(stmt)
         category = result.scalar_one_or_none()
 
-        if not category:
+        if category is None:
             return RedirectResponse(url="/admin/categories", status_code=303)
 
         category.name = name
@@ -212,7 +212,7 @@ async def delete_category(
         result = await session.execute(stmt)
         category = result.scalar_one_or_none()
 
-        if category:
+        if category is not None:
             await session.delete(category)
             await session.commit()
 
