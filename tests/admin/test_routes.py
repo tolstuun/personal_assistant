@@ -215,7 +215,11 @@ class TestOperationsAuthenticated:
         self._patches = [
             # Bypass middleware auth check
             patch("src.admin.app.get_auth_status", return_value=True),
-            patch("src.admin.routes.operations.get_db", new_callable=AsyncMock, return_value=mock_db),
+            patch(
+                "src.admin.routes.operations.get_db",
+                new_callable=AsyncMock,
+                return_value=mock_db,
+            ),
             patch("src.admin.routes.operations.SettingsService"),
         ]
         for p in self._patches:
