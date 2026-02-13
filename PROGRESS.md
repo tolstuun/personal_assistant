@@ -8,6 +8,19 @@ Tracking Personal Assistant development progress.
 
 ## Changelog
 
+### 2026-02-12: Daily Digest Scheduler
+
+**Done:**
+- [x] Created decision doc: docs/decisions/019-daily-digest-scheduler.md
+- [x] Added `src/workers/daily_digest_worker.py` — scheduler worker with idempotent digest generation
+- [x] Pure function `compute_next_run_utc` for calculating next run time
+- [x] `run_once` records job_runs with status success/skipped/error
+- [x] Extended admin `/operations` page with Digest Status panel
+- [x] Added `pa-digest-scheduler` console script to pyproject.toml
+- [x] Added 4 unit tests for `compute_next_run_utc` + 3 tests for `run_once`
+- [x] Added 1 admin test for Digest Status panel
+- [x] Updated ARCHITECTURE.md, docs/changelog.md
+
 ### 2026-02-12: Fetch Cycle Logging & Admin Operations Page
 
 **Done:**

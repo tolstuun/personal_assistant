@@ -73,6 +73,68 @@
     {% endif %}
 </div>
 
+<!-- Digest Status Card -->
+<div class="bg-white rounded-lg shadow p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Digest Status</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div>
+            <p class="text-sm font-medium text-gray-500">Digest Time (UTC)</p>
+            <p class="text-sm text-gray-800 mt-1">{{ digest_time }}</p>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Telegram Notifications</p>
+            <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded-full
+                {% if telegram_notifications %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                {{ "enabled" if telegram_notifications else "disabled" }}
+            </span>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Next Scheduled Run</p>
+            <p class="text-sm text-gray-800 mt-1">{{ next_digest_run.strftime('%Y-%m-%d %H:%M') }} UTC</p>
+        </div>
+        <div>
+            <p class="text-sm font-medium text-gray-500">Latest Scheduler Run</p>
+            {% if latest_scheduler_run %}
+            <span class="inline-block mt-1 px-2 py-1 text-xs font-semibold rounded-full
+                {% if latest_scheduler_run.status == 'success' %}bg-green-100 text-green-800
+                {% elif latest_scheduler_run.status == 'error' %}bg-red-100 text-red-800
+                {% elif latest_scheduler_run.status == 'skipped' %}bg-gray-100 text-gray-800
+                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                {{ latest_scheduler_run.status }}
+            </span>
+            <p class="text-xs text-gray-500 mt-1">{{ latest_scheduler_run.started_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+            {% else %}
+            <p class="text-sm text-gray-400 mt-1">No runs yet</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if latest_digest %}
+    <div class="border-t border-gray-200 pt-4">
+        <p class="text-sm font-medium text-gray-500 mb-2">Latest Digest</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-xs text-gray-500">Date</p>
+                <p class="text-sm text-gray-800">{{ latest_digest.date }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Articles</p>
+                <p class="text-sm text-gray-800">{{ digest_article_count }}</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500">Notified</p>
+                <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full
+                    {% if latest_digest.notified_at %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ "yes" if latest_digest.notified_at else "no" }}
+                </span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <p class="text-gray-500 text-sm mt-2">No digests generated yet.</p>
+    {% endif %}
+</div>
+
 <!-- Recent Job Runs Table -->
 <div class="bg-white rounded-lg shadow">
     <div class="px-6 py-4 border-b border-gray-200">

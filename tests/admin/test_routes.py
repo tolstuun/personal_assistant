@@ -145,3 +145,15 @@ class TestOperationsRoutes:
 
         response = client.get("/operations")
         assert response.status_code == 303
+
+
+class TestOperationsDigestStatus:
+    """Tests for digest status panel on operations page."""
+
+    def test_operations_template_has_digest_status_heading(self) -> None:
+        """Operations template includes a Digest Status section heading."""
+        from pathlib import Path
+
+        template_path = Path("src/admin/templates/operations.html")
+        content = template_path.read_text()
+        assert "Digest Status" in content

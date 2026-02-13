@@ -46,6 +46,25 @@ pytest tests/workers/test_security_digest_worker.py tests/admin/test_routes.py -
 
 For technical details, see: `docs/decisions/018-ops-transparency-job-runs-admin.md`
 
+### Daily Digest Scheduler (New)
+Added an automatic daily digest scheduler that generates digests at a configured time (UTC) and optionally sends Telegram notifications:
+
+- **Scheduler worker** (`src/workers/daily_digest_worker.py`) — Runs continuously, generates a digest once per day at `digest_time` (UTC). Idempotent: skips if today's digest already exists.
+- **Job run logging** — Each scheduler attempt records a `job_name="digest_scheduler"` run with status (success/skipped/error) and details (digest date, article count, notification status).
+- **Admin Operations digest panel** — Extended `/admin/operations` with a "Digest Status" section showing digest_time (UTC), telegram_notifications, next scheduled run, latest digest info, and latest scheduler run.
+
+**How to run:**
+```bash
+python3 -m src.workers.daily_digest_worker
+```
+
+**How to test:**
+```bash
+pytest tests/workers/test_daily_digest_worker.py tests/admin/test_routes.py -v
+```
+
+For technical details, see: `docs/decisions/019-daily-digest-scheduler.md`
+
 ## 2026-02-07
 
 ### Browser Fetcher Timeout Fix (Fix)
